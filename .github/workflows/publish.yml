@@ -18,6 +18,8 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - run: sudo apt install libx11-dev libxkbfile-dev
+      - run: python3 -m pip install setuptools
       - run: npm ci
       - run: npm test
 
