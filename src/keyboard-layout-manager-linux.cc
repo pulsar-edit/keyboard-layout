@@ -187,7 +187,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       const char *env_variant = getenv("XKB_DEFAULT_VARIANT");
       const char *env_options = getenv("XKB_DEFAULT_OPTIONS");
 
-      std::cout << "Layout from env?" << env_layout << std::endl;
+      // std::cout << "Layout from env?" << env_layout << std::endl;
 
       struct xkb_rule_names names = {
         .rules = env_rules,
