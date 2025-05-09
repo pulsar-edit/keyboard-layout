@@ -60,7 +60,7 @@
           ],
           "link_settings": {
             "libraries": [
-              "-lX11", "-lxkbfile"
+              "-lX11", "-lxkbfile", "-lxkbcommon"
             ]
           }
         }],  # OS=="linux"
@@ -73,7 +73,7 @@
             "/usr/local/include", "/usr/local/include/X11",
           ],
           "ldflags": [
-            "-lX11", "-lxkbfile", "-L/usr/local/lib",
+            "-lX11", "-lxkbfile", "-lxkbcommon", "-L/usr/local/lib",
           ],
         }],  # OS=="posix"
       ]
