@@ -205,11 +205,24 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
         xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(keymap);
         const char *layout_name = NULL;
         if (num_layouts > 0) {
-          layout_name = strdup(xkb_keymap_layout_get_name(keymap, 0));
-          result = Napi::String::New(env, std::string(names.layout || "") + "," + std::string(names.variant || ""));
-        } else {
-          result = env.Null();
+          layout_name = xkb_keymap_layout_get_name(keymap, 0);
+
+          // Add null checks before string construction
+          std::string layout_str = names.layout ? std::string(names.layout) : "unknown";
+          std::string variant_str = names.variant ? std::string(names.variant) : "";
+
+          if (!variant_str.empty()) {
+            result = Napi::String::New(env, layout_str + "," + variant_str);
+          } else {
+            result = Napi::String::New(env, layout_str);
+          }
         }
+        // if (num_layouts > 0) {
+        //   layout_name = strdup(xkb_keymap_layout_get_name(keymap, 0));
+        //   result = Napi::String::New(env, std::string(names.layout) + "," + std::string(names.variant));
+        // } else {
+        //   result = env.Null();
+        // }
       }
       xkb_keymap_unref(keymap);
       xkb_context_unref(context);
