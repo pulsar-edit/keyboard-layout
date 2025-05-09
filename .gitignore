@@ -5,3 +5,4 @@ npm-debug.log
 build
 .vscode
 .cache
+compile_commands.json
