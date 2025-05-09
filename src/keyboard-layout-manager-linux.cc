@@ -206,7 +206,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
         const char *layout_name = NULL;
         if (num_layouts > 0) {
           layout_name = strdup(xkb_keymap_layout_get_name(keymap, 0));
-          result = Napi::String::New(env, std::string(names.layout) + "," + std::string(names.variant));
+          result = Napi::String::New(env, std::string(names.layout || "") + "," + std::string(names.variant || ""));
         } else {
           result = env.Null();
         }
