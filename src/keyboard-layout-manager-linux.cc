@@ -461,6 +461,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
           (entry).Set(unmodifiedKey, unmodified);
           (entry).Set(withShiftKey, withShift);
           (result).Set(dom3CodeKey, entry);
+        } else {
+          std::cout << "No luck for: " << dom3Code << std::endl;
         }
       }
     }
