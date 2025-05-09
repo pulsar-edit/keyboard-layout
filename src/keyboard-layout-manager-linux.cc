@@ -6,6 +6,58 @@
 #include <X11/extensions/XKBrules.h>
 #include <cwctype>
 #include <cctype>
+#include <locale.h>
+
+// Function to get current keyboard layout using xkbcommon
+static char* get_current_layout() {
+    // Set locale to use system defaults
+    setlocale(LC_ALL, "");
+
+    // Create xkb context
+    struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (!context) return strdup("unknown");
+
+    // Get layout from environment or default rules
+    const char *env_layout = getenv("XKB_DEFAULT_LAYOUT");
+    const char *env_rules = getenv("XKB_DEFAULT_RULES");
+    const char *env_model = getenv("XKB_DEFAULT_MODEL");
+    const char *env_variant = getenv("XKB_DEFAULT_VARIANT");
+    const char *env_options = getenv("XKB_DEFAULT_OPTIONS");
+
+    struct xkb_rule_names names = {
+        .rules = env_rules,
+        .model = env_model,
+        .layout = env_layout,
+        .variant = env_variant,
+        .options = env_options
+    };
+
+    // Create keymap from names
+    struct xkb_keymap *keymap =
+        xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+    // Default result
+    char *result = strdup("unknown");
+
+    if (keymap) {
+        // Get the number of layouts (groups)
+        xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(keymap);
+
+        if (num_layouts > 0) {
+            // Get the name of the first layout
+            const char *layout_name = xkb_keymap_layout_get_name(keymap, 0);
+            if (layout_name) {
+                free(result);
+                result = strdup(layout_name);
+            }
+        }
+
+        xkb_keymap_unref(keymap);
+    }
+
+    xkb_context_unref(context);
+    return result;
+}
 
 // More robust detection combining multiple checks
 static int detect_display_server() {
@@ -125,18 +177,27 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     setlocale(LC_ALL, "");
     struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (context) {
+      // Get layout from environment or default rules
+      const char *env_layout = getenv("XKB_DEFAULT_LAYOUT");
+      const char *env_rules = getenv("XKB_DEFAULT_RULES");
+      const char *env_model = getenv("XKB_DEFAULT_MODEL");
+      const char *env_variant = getenv("XKB_DEFAULT_VARIANT");
+      const char *env_options = getenv("XKB_DEFAULT_OPTIONS");
+
       struct xkb_rule_names names = {
-        .rules = NULL,
-        .model = NULL,
-        .layout = NULL,
-        .variant = NULL,
-        .options = NULL
+        .rules = env_rules,
+        .model = env_model,
+        .layout = env_layout,
+        .variant = env_variant,
+        .options = env_options
       };
+
       struct xkb_keymap *keymap = xkb_keymap_new_from_names(
         context,
         &names,
         XKB_KEYMAP_COMPILE_NO_FLAGS
       );
+
       if (!keymap) {
         result = env.Null();
       } else {
