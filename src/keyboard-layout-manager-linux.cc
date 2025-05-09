@@ -265,6 +265,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     }
   }
 
+  std::cout << "Returning!" << std::endl;
   return result;
 }
 
