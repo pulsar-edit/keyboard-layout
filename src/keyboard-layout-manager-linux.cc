@@ -1,49 +1,101 @@
 #include "keyboard-layout-manager.h"
 
+#include <xkbcommon/xkbcommon.h>
 #include <X11/XKBlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XKBrules.h>
 #include <cwctype>
 #include <cctype>
 
+// More robust detection combining multiple checks
+static int detect_display_server() {
+  // Method 1: XDG_SESSION_TYPE - Can be most reliable when set correctly
+  const char *session_type = getenv("XDG_SESSION_TYPE");
+  if (session_type != NULL) {
+    if (strcmp(session_type, "wayland") == 0) {
+      return 1; // Wayland
+    } else if (strcmp(session_type, "x11") == 0) {
+      return 0; // X11
+    }
+    // Other values like "tty" could exist
+  }
+
+  // Method 2 & 3: Check for environment variables
+  const char *wayland_display = getenv("WAYLAND_DISPLAY");
+  const char *x_display = getenv("DISPLAY");
+
+  // Both could be set in some edge cases (X on Wayland or Wayland on X)
+  if (wayland_display && strlen(wayland_display) > 0) {
+    if (!(x_display && strlen(x_display) > 0)) {
+      return 1; // Only Wayland is set
+    }
+  } else if (x_display && strlen(x_display) > 0) {
+    return 0; // Only X11 is set
+  }
+
+  // If we get here, situation is ambiguous
+  return -1;
+}
+
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
 
-  xDisplay = XOpenDisplay("");
-  CHECK_VOID(
-    xDisplay,
-    "Could not connect to X display",
-    env
-  );
-
-  xInputMethod = XOpenIM(xDisplay, 0, 0, 0);
-  if (!xInputMethod) return;
-
-  XIMStyles* styles = 0;
-  if (XGetIMValues(xInputMethod, XNQueryInputStyle, &styles, NULL) || !styles) {
-    return;
-  }
-
-  XIMStyle bestMatchStyle = 0;
-  for (int i = 0; i < styles->count_styles; i++) {
-    XIMStyle thisStyle = styles->supported_styles[i];
-    if (thisStyle == (XIMPreeditNothing | XIMStatusNothing))
-    {
-      bestMatchStyle = thisStyle;
-      break;
-    }
-  }
-  XFree(styles);
-  if (!bestMatchStyle) return;
-
-  Window window;
-  int revert_to;
-  XGetInputFocus(xDisplay, &window, &revert_to);
-  if (window != BadRequest) {
-    xInputContext = XCreateIC(
-      xInputMethod, XNInputStyle, bestMatchStyle, XNClientWindow, window,
-      XNFocusWindow, window, NULL
+  isWayland = detect_display_server() == 1;
+  if (isWayland) {
+    // KeyboardMonitor* monitor = calloc(1, sizeof(KeyboardMonitor));
+    // if (!monitor) {
+    //   return;
+    // }
+    //
+    // monitor->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    // if (!monitor->xkb_context) {
+    //   free(monitor);
+    //   return;
+    // }
+    //
+    // monitor->display = wl_display_connect(NULL);
+    // if (!monitor->display) {
+    //   xkb_context_unref(monitor->xkb_context);
+    //   free(monitor);
+    //   return;
+    // }
+  } else {
+    xDisplay = XOpenDisplay("");
+    CHECK_VOID(
+      xDisplay,
+      "Could not connect to X display",
+      env
     );
+
+    xInputMethod = XOpenIM(xDisplay, 0, 0, 0);
+    if (!xInputMethod) return;
+
+    XIMStyles* styles = 0;
+    if (XGetIMValues(xInputMethod, XNQueryInputStyle, &styles, NULL) || !styles) {
+      return;
+    }
+
+    XIMStyle bestMatchStyle = 0;
+    for (int i = 0; i < styles->count_styles; i++) {
+      XIMStyle thisStyle = styles->supported_styles[i];
+      if (thisStyle == (XIMPreeditNothing | XIMStatusNothing))
+      {
+        bestMatchStyle = thisStyle;
+        break;
+      }
+    }
+    XFree(styles);
+    if (!bestMatchStyle) return;
+
+    Window window;
+    int revert_to;
+    XGetInputFocus(xDisplay, &window, &revert_to);
+    if (window != BadRequest) {
+      xInputContext = XCreateIC(
+        xInputMethod, XNInputStyle, bestMatchStyle, XNClientWindow, window,
+        XNFocusWindow, window, NULL
+      );
+    }
   }
 }
 
@@ -68,18 +120,55 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
   Napi::HandleScope scope(env);
   Napi::Value result;
 
-  XkbRF_VarDefsRec vdr;
-  char *tmp = NULL;
-  if (XkbRF_GetNamesProp(xDisplay, &tmp, &vdr) && vdr.layout) {
-    XkbStateRec xkbState;
-    XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
-    if (vdr.variant) {
-      result = Napi::String::New(env, std::string(vdr.layout) + "," + std::string(vdr.variant) + " [" + std::to_string(xkbState.group) + "]");
+  if (isWayland) {
+    // Wayland
+    setlocale(LC_ALL, "");
+    struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (context) {
+      struct xkb_rule_names names = {
+        .rules = NULL,
+        .model = NULL,
+        .layout = NULL,
+        .variant = NULL,
+        .options = NULL
+      };
+      struct xkb_keymap *keymap = xkb_keymap_new_from_names(
+        context,
+        &names,
+        XKB_KEYMAP_COMPILE_NO_FLAGS
+      );
+      if (!keymap) {
+        result = env.Null();
+      } else {
+        xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(keymap);
+        const char *layout_name = NULL;
+        if (num_layouts > 0) {
+          layout_name = strdup(xkb_keymap_layout_get_name(keymap, 0));
+          result = Napi::String::New(env, std::string(names.layout) + "," + std::string(names.variant));
+        } else {
+          result = env.Null();
+        }
+      }
+      xkb_keymap_unref(context);
+      xkb_context_unref(context);
     } else {
-      result = Napi::String::New(env, std::string(vdr.layout) + " [" + std::to_string(xkbState.group) + "]");
+      result = env.Null();
     }
   } else {
-    result = env.Null();
+    // X11
+    XkbRF_VarDefsRec vdr;
+    char *tmp = NULL;
+    if (XkbRF_GetNamesProp(xDisplay, &tmp, &vdr) && vdr.layout) {
+      XkbStateRec xkbState;
+      XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
+      if (vdr.variant) {
+        result = Napi::String::New(env, std::string(vdr.layout) + "," + std::string(vdr.variant) + " [" + std::to_string(xkbState.group) + "]");
+      } else {
+        result = Napi::String::New(env, std::string(vdr.layout) + " [" + std::to_string(xkbState.group) + "]");
+      }
+    } else {
+      result = env.Null();
+    }
   }
 
   return result;

@@ -109,7 +109,9 @@ describe('Keyboard Layout', () => {
 
     describe('.getCurrentKeyboardLayout()', function () {
       it('returns an identifier for the current keyboard layout (basic smoke test)', function () {
-        expect(KeyboardLayout.getCurrentKeyboardLayout()).toBeDefined()
+        let layout = KeyboardLayout.getCurrentKeyboardLayout();
+        console.warn('Linux keyboard layout:', layout);
+        expect(layout).toBeDefined()
       })
     })
   }

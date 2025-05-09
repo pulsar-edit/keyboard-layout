@@ -27,6 +27,7 @@ if (!(cond)) {                                                 \
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <X11/Xlib.h>
+#include <wayland-client.h>
 #endif // __linux__ || __FreeBSD__
 
 class KeyboardLayoutManager : public Napi::ObjectWrap<KeyboardLayoutManager> {
@@ -53,9 +54,12 @@ private:
   void Cleanup();
 
 #if defined(__linux__) || defined(__FreeBSD__)
+  bool isWayland;
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
+  KeyboardMonitor* monitor;
+  const struct wl_keyboard_listener keyboard_listener;
 #endif
 
   bool isFinalizing = false;
