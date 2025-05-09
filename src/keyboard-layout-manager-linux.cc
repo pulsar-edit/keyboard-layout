@@ -315,7 +315,9 @@ Napi::Value CharacterForNativeCodeWayland(
   Napi::Env env,
   xkb_context *xkbContext,
   xkb_keymap *xkbKeymap,
-  xkb_state *xkbState
+  xkb_state *xkbState,
+  uint32_t xkbKeycode,
+  uint32_t state
 ) {
   if (!xkbContext || !xkbKeymap || !xkbState) {
     return env.Null();
