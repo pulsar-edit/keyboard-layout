@@ -99,13 +99,14 @@ describe('Keyboard Layout', () => {
 
   // Smoke tests on Linux
   if (process.platform === 'linux') {
-    // describe('.getCurrentKeymap()', function () {
-    //   it('returns a keymap with unmodified and shift-modified keys without blowing up (basic smoke test)', function () {
-    //     const keymap = KeyboardLayout.getCurrentKeymap()
-    //     expect(keymap.KeyG.unmodified).toBeDefined()
-    //     expect(keymap.KeyG.withShift).toBeDefined()
-    //   })
-    // })
+    describe('.getCurrentKeymap()', function () {
+      it('returns a keymap with unmodified and shift-modified keys without blowing up (basic smoke test)', function () {
+        const keymap = KeyboardLayout.getCurrentKeymap()
+        console.log('KEYMAP:', keymap);
+        expect(keymap.KeyG.unmodified).toBeDefined()
+        expect(keymap.KeyG.withShift).toBeDefined()
+      })
+    })
 
     describe('.getCurrentKeyboardLayout()', function () {
       it('returns an identifier for the current keyboard layout (basic smoke test)', function () {
