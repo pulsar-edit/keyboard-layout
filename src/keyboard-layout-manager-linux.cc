@@ -213,7 +213,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
         if (num_layouts > 0) {
           std::cout << "More than one layout: " << num_layouts << std::endl;
           for (int i = 0; i < num_layouts; i++) {
-            std::cout << "Layout " << i << " is " << layout_name(xkb_keymap_layout_get_name(keymap, i)) << std::endl;
+            std::cout << "Layout " << i << " is " << xkb_keymap_layout_get_name(keymap, i) << std::endl;
           }
           layout_name = xkb_keymap_layout_get_name(keymap, 0);
 
