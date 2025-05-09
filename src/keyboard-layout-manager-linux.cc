@@ -210,7 +210,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
           result = env.Null();
         }
       }
-      xkb_keymap_unref(context);
+      xkb_keymap_unref(keymap);
       xkb_context_unref(context);
     } else {
       result = env.Null();
