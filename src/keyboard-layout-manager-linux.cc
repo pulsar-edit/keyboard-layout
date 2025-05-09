@@ -221,6 +221,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
           result = Napi::String::New(env, layout_name);
 
+          std::cout << "Done with result!" << std::endl;
+
           // Add null checks before string construction
           // std::string layout_str = names.layout ? std::string(names.layout) : "unknown";
           // std::string variant_str = names.variant ? std::string(names.variant) : "";
@@ -232,7 +234,10 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
           // }
         }
       }
+
+      std::cout << "Unreffing…" << std::endl;
       xkb_keymap_unref(keymap);
+      std::cout << "…unreffed!" << std::endl;
       xkb_context_unref(context);
     } else {
       result = env.Null();
