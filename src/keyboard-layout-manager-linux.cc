@@ -92,7 +92,8 @@ static int detect_display_server() {
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
 
-  isWayland = detect_display_server() == 1;
+  // isWayland = detect_display_server() == 1;
+  isWayland = true;
   if (isWayland) {
     // KeyboardMonitor* monitor = calloc(1, sizeof(KeyboardMonitor));
     // if (!monitor) {
