@@ -7,6 +7,7 @@
 #include <cwctype>
 #include <cctype>
 #include <stdio.h>
+#include <iostream>
 #include <locale.h>
 
 // Function to get current keyboard layout using xkbcommon
