@@ -132,10 +132,12 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
     struct xkb_keymap *keymap = nullptr;
     bool gotKeymap = GetWaylandKeymap(context, &keymap);
     if (gotKeymap) {
+      std::cout << "GOT KEYMAP!" << std::endl;
       xkbContext = context;
       xkbKeymap = keymap;
       return;
     }
+    std::cout << "FALLBACK!" << std::endl;
     // KeyboardMonitor* monitor = calloc(1, sizeof(KeyboardMonitor));
     // if (!monitor) {
     //   return;
