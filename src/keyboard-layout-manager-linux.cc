@@ -440,11 +440,11 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
 
   if (isWayland) {
     size_t keyCodeMapSize = sizeof(keyCodeMap) / sizeof(keyCodeMap[0]);
-    for (size_t i = 0; i < keyCodeMapSizel i++) {
+    for (size_t i = 0; i < keyCodeMapSize; i++) {
       const char *dom3Code = keyCodeMap[i].dom3Code;
-      uint xkbKeyCode = keyCodeMap[i].xkbKeyCode;
+      uint xkbKeycode = keyCodeMap[i].xkbKeycode;
 
-      if (dom3Code && xkbKeyCode > 0x0000) {
+      if (dom3Code && xkbKeycode > 0x0000) {
         Napi::String dom3CodeKey = Napi::String::New(env, dom3Code);
         Napi::Value unmodified = CharacterForNativeCodeWayland(env, xkbContext, xkbKeymap, xkbState, xjbKeycode, keyboardBaseState);
         Napi::Value withShift = CharacterForNativeCodeWayland(env, xkbContext, xkbKeymap, xkbState, keyboardBaseState | ShiftMask);
