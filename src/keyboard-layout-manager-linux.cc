@@ -187,6 +187,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       const char *env_variant = getenv("XKB_DEFAULT_VARIANT");
       const char *env_options = getenv("XKB_DEFAULT_OPTIONS");
 
+      std::cout << "Layout from env?" << env_layout << std::endl;
+
       struct xkb_rule_names names = {
         .rules = env_rules,
         .model = env_model,
@@ -209,10 +211,13 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
         xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(keymap);
         const char *layout_name = NULL;
         if (num_layouts > 0) {
-          std::cout << "More than one layout!" << std::endl;
+          std::cout << "More than one layout: " << num_layouts << std::endl;
+          for (int i = 0; i < num_layouts; i++) {
+            std::cout << "Layout " << i << " is " << layout_name(xkb_keymap_layout_get_name(keymap, i)) << std::endl;
+          }
           layout_name = xkb_keymap_layout_get_name(keymap, 0);
 
-          std::cout << "Layout name: " << layout_name << std::endl;
+          std::cout << "First layout name: " << layout_name << std::endl;
 
           // Add null checks before string construction
           std::string layout_str = names.layout ? std::string(names.layout) : "unknown";
