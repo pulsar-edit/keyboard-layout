@@ -454,7 +454,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
       if (dom3Code && xkbKeycode > 0x0000) {
         Napi::String dom3CodeKey = Napi::String::New(env, dom3Code);
         Napi::Value unmodified = CharacterForNativeCodeWayland(env, xkbContext, xkbKeymap, xkbState, xkbKeycode, keyboardBaseState);
-        Napi::Value withShift = CharacterForNativeCodeWayland(env, xkbContext, xkbKeymap, xkbState, keyboardBaseState | ShiftMask);
+        Napi::Value withShift = CharacterForNativeCodeWayland(env, xkbContext, xkbKeymap, xkbState, xkbKeycode, keyboardBaseState | ShiftMask);
 
         if (unmodified.IsString() || withShift.IsString()) {
           Napi::Object entry = Napi::Object::New(env);
