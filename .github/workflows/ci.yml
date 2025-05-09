@@ -51,7 +51,14 @@ jobs:
           echo "Current locale:"
           locale
           echo "Current keyboard layout:"
-          cat /etc/default/keyboard | grep XKBLAYOUT          
+          cat /etc/default/keyboard | grep XKBLAYOUT
+
+      - name: Report session type
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          echo "X or Wayland? $XKB_SESSION_TYPE"
+          echo "WAYLAND_DISPLAY? $WAYLAND_DISPLAY"
+          echo "DISPLAY?: $DISPLAY"
 
       - name: Install Node ${{ matrix.node }}
         uses: actions/setup-node@v4
