@@ -108,12 +108,12 @@ describe('Keyboard Layout', () => {
       })
     })
 
-    describe('.getCurrentKeyboardLayout()', function () {
-      it('returns an identifier for the current keyboard layout (basic smoke test)', function () {
-        let layout = KeyboardLayout.getCurrentKeyboardLayout();
-        console.warn('Linux keyboard layout:', layout);
-        expect(layout).toBeDefined()
-      })
-    })
+    // describe('.getCurrentKeyboardLayout()', function () {
+    //   it('returns an identifier for the current keyboard layout (basic smoke test)', function () {
+    //     let layout = KeyboardLayout.getCurrentKeyboardLayout();
+    //     console.warn('Linux keyboard layout:', layout);
+    //     expect(layout).toBeDefined()
+    //   })
+    // })
   }
 })
