@@ -91,6 +91,37 @@ static int detect_display_server() {
   return -1;
 }
 
+static bool GetWaylandKeymap(xkb_context *context, xkb_keymap **keymap) {
+  // Try to find the keymap in the XDG runtime dir
+  const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
+  if (!xdg_runtime)
+    return false;
+
+  // Construct path to the active keymap if it exists
+  std::string keymap_path = std::string(xdg_runtime) + "/keymap";
+  FILE *f = fopen(keymap_path.c_str(), "r");
+  if (!f)
+    return false;
+
+  // Read the keymap string
+  fseek(f, 0, SEEK_END);
+  long size = ftell(f);
+  fseek(f, 0, SEEK_SET);
+
+  char *keymap_string = new char[size + 1];
+  fread(keymap_string, 1, size, f);
+  keymap_string[size] = '\0';
+  fclose(f);
+
+  // Create keymap from the string
+  *keymap = xkb_keymap_new_from_string(context, keymap_string,
+                                       XKB_KEYMAP_FORMAT_TEXT_V1,
+                                       XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+  delete[] keymap_string;
+  return (*keymap != nullptr);
+}
+
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
 
