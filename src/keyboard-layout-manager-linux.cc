@@ -94,14 +94,18 @@ static int detect_display_server() {
 static bool GetWaylandKeymap(xkb_context *context, xkb_keymap **keymap) {
   // Try to find the keymap in the XDG runtime dir
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
-  if (!xdg_runtime)
+  if (!xdg_runtime) {
+    std::cout << "No runtime" << std::endl;
     return false;
+  }
 
   // Construct path to the active keymap if it exists
   std::string keymap_path = std::string(xdg_runtime) + "/keymap";
   FILE *f = fopen(keymap_path.c_str(), "r");
-  if (!f)
+  if (!f) {
+    std::cout << "No file" << std::endl;
     return false;
+  }
 
   // Read the keymap string
   fseek(f, 0, SEEK_END);
@@ -119,6 +123,9 @@ static bool GetWaylandKeymap(xkb_context *context, xkb_keymap **keymap) {
                                        XKB_KEYMAP_COMPILE_NO_FLAGS);
 
   delete[] keymap_string;
+  if (*keymap == nullptr) {
+    std::cout << "Something else (mysterious)" << std::endl;
+  }
   return (*keymap != nullptr);
 }
 
