@@ -58,8 +58,6 @@ private:
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
-  KeyboardMonitor* monitor;
-  const struct wl_keyboard_listener keyboard_listener;
 #endif
 
   bool isFinalizing = false;
