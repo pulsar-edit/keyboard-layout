@@ -6,6 +6,7 @@
 #include <X11/extensions/XKBrules.h>
 #include <cwctype>
 #include <cctype>
+#include <stdio.h>
 #include <locale.h>
 
 // Function to get current keyboard layout using xkbcommon
@@ -200,12 +201,17 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       );
 
       if (!keymap) {
+        std::cout << "No keymaps!" << std::endl;
         result = env.Null();
       } else {
+        std::cout << "Keymaps!" << std::endl;
         xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(keymap);
         const char *layout_name = NULL;
         if (num_layouts > 0) {
+          std::cout << "More than one layout!" << std::endl;
           layout_name = xkb_keymap_layout_get_name(keymap, 0);
+
+          std::cout << "Layout name: " << layout_name << std::endl;
 
           // Add null checks before string construction
           std::string layout_str = names.layout ? std::string(names.layout) : "unknown";
