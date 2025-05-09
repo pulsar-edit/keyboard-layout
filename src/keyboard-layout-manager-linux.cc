@@ -155,16 +155,22 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
 }
 
 void KeyboardLayoutManager::PlatformTeardown() {
+  std::cout << "Teardown!" << std::endl;
   if (xInputContext) {
     XDestroyIC(xInputContext);
   }
+  std::cout << "Teardown 1" << std::endl;
 
   if (xInputMethod) {
     XCloseIM(xInputMethod);
   }
 
-  XCloseDisplay(xDisplay);
+  std::cout << "Teardown 2" << std::endl;
+  if (xDisplay) {
+    XCloseDisplay(xDisplay);
+  }
   callback.Reset();
+  std::cout << "Teardown 3" << std::endl;
 };
 
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
