@@ -439,34 +439,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
   Napi::String withShiftKey = Napi::String::New(env, "withShift");
 
   if (isWayland) {
-
-    const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
-    if (xdg_runtime);
-
-    // Construct path to the active keymap if it exists
-    std::string keymap_path = std::string(xdg_runtime) + "/keymap";
-    FILE *f = fopen(keymap_path.c_str(), "r");
-    if (!f) return false;
-
-    // Read the keymap string
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-
-    char *keymap_string = new char[size + 1];
-    fread(keymap_string, 1, size, f);
-    keymap_string[size] = '\0';
-    fclose(f);
-
-    // Create keymap from the string
-    *keymap = xkb_keymap_new_from_string(context, keymap_string,
-                                        XKB_KEYMAP_FORMAT_TEXT_V1,
-                                        XKB_KEYMAP_COMPILE_NO_FLAGS);
-
-    delete[] keymap_string;
-    return (*keymap != nullptr);
-
     size_t keyCodeMapSize = sizeof(keyCodeMap) / sizeof(keyCodeMap[0]);
     for (size_t i = 0; i < keyCodeMapSizel i++) {
       const char *dom3Code = keyCodeMap[i].dom3Code;
