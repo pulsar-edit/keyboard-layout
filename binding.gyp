@@ -60,7 +60,7 @@
           ],
           "link_settings": {
             "libraries": [
-              "-lX11", "-lxkbfile", "-lxkbcommon"
+              "-lX11", "-lxkbfile", "-lxkbcommon", "-lwayland-client"
             ]
           }
         }],  # OS=="linux"

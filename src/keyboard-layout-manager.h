@@ -28,6 +28,8 @@ if (!(cond)) {                                                 \
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <X11/Xlib.h>
 #include <wayland-client.h>
+#include <wayland-client-protocol.h>
+#include <xkbcommon/xkbcommon.h>
 #endif // __linux__ || __FreeBSD__
 
 class KeyboardLayoutManager : public Napi::ObjectWrap<KeyboardLayoutManager> {
@@ -58,6 +60,9 @@ private:
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
+  xkb_context *xkbContext;
+  xkb_keymap *xkbKeymap;
+  xkb_state *xkbState;
 #endif
 
   bool isFinalizing = false;
