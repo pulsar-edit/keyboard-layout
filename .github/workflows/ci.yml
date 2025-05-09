@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         if: ${{ runner.os == 'Linux' }}
-        run: apt-get update && apt-get install libx11-dev libxkbfile-dev
+        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev
 
       - name: Install Node ${{ matrix.node }}
         uses: actions/setup-node@v4
