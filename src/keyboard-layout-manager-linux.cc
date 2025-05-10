@@ -347,70 +347,96 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    // Store the current state
-    xkb_state* original_state = waylandContext->xkb_state;
+    // Get layout names - this is usually what you want for identification
+    char layout_id[256] = {0};
 
-    struct xkb_state* temp_state = xkb_state_new(waylandContext->xkb_keymap);
-    struct xkb_state* temp_state_with_shift = xkb_state_new(waylandContext->xkb_keymap);
-
-    // Get the shift mask
-    xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(waylandContext->xkb_keymap, XKB_MOD_NAME_SHIFT);
-    xkb_mod_mask_t shift_mask = 1 << shift_idx;
-
-    xkb_state_update_mask(temp_state_with_shift, shift_mask, 0, 0, 0, 0 , 0);
-
-    // Create fingerprints for each layout
-    std::vector<std::string> layout_fingerprints;
+    // Get number of layouts
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
 
-
-    // For each layout, create a test state
-    for (xkb_layout_index_t layout = 0; layout < num_layouts; layout++) {
-        // Create a new state with just this layout active
-        xkb_state* test_state = xkb_state_new(waylandContext->xkb_keymap);
-
-        // Set the active group (layout)
-        xkb_state_update_mask(test_state, 0, 0, 0, layout, 0, 0);
-
-        // Build a fingerprint of key mappings for this layout
-        std::string fingerprint;
-        const xkb_keycode_t test_keys[] = { 38, 39, 40 }; // a, s, d
-
-        for (auto key : test_keys) {
-            xkb_keysym_t sym = xkb_state_key_get_one_sym(test_state, key);
-            char buf[8] = {0};
-            xkb_keysym_to_utf8(sym, buf, sizeof(buf));
-            fingerprint += buf;
+    // Build a string with all layout names
+    for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
+      const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
+      if (layout_name) {
+        if (i > 0) {
+          strcat(layout_id, ",");
         }
-
-        layout_fingerprints.push_back(fingerprint);
-        xkb_state_unref(test_state);
-    }
-
-    // Now get the fingerprint of the current active state
-    std::string current_fingerprint;
-    const xkb_keycode_t test_keys[] = {38, 39, 40}; // a, s, d
-
-    for (auto key : test_keys) {
-      xkb_keysym_t sym = xkb_state_key_get_one_sym(original_state, key);
-      char buf[8] = {0};
-      xkb_keysym_to_utf8(sym, buf, sizeof(buf));
-      current_fingerprint += buf;
-    }
-
-    std::cout << "Current fingerprint: " << current_fingerprint << std::endl;
-
-    xkb_state_unref(temp_state);
-    xkb_state_unref(temp_state_with_shift);
-
-    // Find the matching layout
-    for (xkb_layout_index_t i = 0; i < layout_fingerprints.size(); i++) {
-      if (layout_fingerprints[i] == current_fingerprint) {
-        const char *name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
-        return Napi::String::New(env, name ? name : std::string("layout-") + std::to_string(i));
-        // name ? name : std::string("layout-") + std::to_string(i);
+        strcat(layout_id, layout_name);
       }
     }
+
+    // You could also include the active layout index
+    // xkb_layout_index_t active_layout = 0;
+    // if (ctx->xkb_state) {
+    //   active_layout = xkb_state_serialize_layout(ctx->xkb_state);
+    // }
+
+    return Napi::String::New(env, layout_id);
+
+
+    // Store the current state
+    // xkb_state* original_state = waylandContext->xkb_state;
+    //
+    // struct xkb_state* temp_state = xkb_state_new(waylandContext->xkb_keymap);
+    // struct xkb_state* temp_state_with_shift = xkb_state_new(waylandContext->xkb_keymap);
+    //
+    // // Get the shift mask
+    // xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(waylandContext->xkb_keymap, XKB_MOD_NAME_SHIFT);
+    // xkb_mod_mask_t shift_mask = 1 << shift_idx;
+    //
+    // xkb_state_update_mask(temp_state_with_shift, shift_mask, 0, 0, 0, 0 , 0);
+    //
+    // // Create fingerprints for each layout
+    // std::vector<std::string> layout_fingerprints;
+    // xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+    //
+    //
+    // // For each layout, create a test state
+    // for (xkb_layout_index_t layout = 0; layout < num_layouts; layout++) {
+    //     // Create a new state with just this layout active
+    //     xkb_state* test_state = xkb_state_new(waylandContext->xkb_keymap);
+    //
+    //     // Set the active group (layout)
+    //     xkb_state_update_mask(test_state, 0, 0, 0, layout, 0, 0);
+    //
+    //     // Build a fingerprint of key mappings for this layout
+    //     std::string fingerprint;
+    //     const xkb_keycode_t test_keys[] = { 38, 39, 40 }; // a, s, d
+    //
+    //     for (auto key : test_keys) {
+    //         xkb_keysym_t sym = xkb_state_key_get_one_sym(test_state, key);
+    //         char buf[8] = {0};
+    //         xkb_keysym_to_utf8(sym, buf, sizeof(buf));
+    //         fingerprint += buf;
+    //     }
+    //
+    //     layout_fingerprints.push_back(fingerprint);
+    //     xkb_state_unref(test_state);
+    // }
+    //
+    // // Now get the fingerprint of the current active state
+    // std::string current_fingerprint;
+    // const xkb_keycode_t test_keys[] = {38, 39, 40}; // a, s, d
+    //
+    // for (auto key : test_keys) {
+    //   xkb_keysym_t sym = xkb_state_key_get_one_sym(original_state, key);
+    //   char buf[8] = {0};
+    //   xkb_keysym_to_utf8(sym, buf, sizeof(buf));
+    //   current_fingerprint += buf;
+    // }
+    //
+    // std::cout << "Current fingerprint: " << current_fingerprint << std::endl;
+    //
+    // xkb_state_unref(temp_state);
+    // xkb_state_unref(temp_state_with_shift);
+    //
+    // // Find the matching layout
+    // for (xkb_layout_index_t i = 0; i < layout_fingerprints.size(); i++) {
+    //   if (layout_fingerprints[i] == current_fingerprint) {
+    //     const char *name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
+    //     return Napi::String::New(env, name ? name : std::string("layout-") + std::to_string(i));
+    //     // name ? name : std::string("layout-") + std::to_string(i);
+    //   }
+    // }
 
     // // Keys to test - include a variety of keys from different parts of keyboard
     // const xkb_keycode_t test_keys[] = {
