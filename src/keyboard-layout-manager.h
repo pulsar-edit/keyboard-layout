@@ -28,8 +28,22 @@ if (!(cond)) {                                                 \
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <X11/Xlib.h>
 #include <wayland-client.h>
-#include <wayland-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
+
+// Add this struct definition outside your class
+typedef struct {
+    struct wl_display *display;
+    struct wl_registry *registry;
+    struct wl_seat *seat;
+    struct wl_keyboard *keyboard;
+    struct xkb_context *xkb_context;
+    struct xkb_keymap *xkb_keymap;
+    struct xkb_state *xkb_state;
+    bool keymap_received;
+    xkb_mod_mask_t shift_mask;
+    xkb_mod_mask_t alt_gr_mask;
+} WaylandKeymapContext;
+
 #endif // __linux__ || __FreeBSD__
 
 class KeyboardLayoutManager : public Napi::ObjectWrap<KeyboardLayoutManager> {
@@ -57,6 +71,7 @@ private:
 
 #if defined(__linux__) || defined(__FreeBSD__)
   bool isWayland;
+  WaylandKeymapContext* waylandContext;
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
