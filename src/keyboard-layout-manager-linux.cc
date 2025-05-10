@@ -196,6 +196,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
     std::cout << "in PlatformSetup!" << std::endl;
     waylandContext = new WaylandKeymapContext();
     memset(waylandContext, 0, sizeof(WaylandKeymapContext));
+    std::cout << "memset!" << std::endl;
 
     waylandContext->display = wl_display_connect(NULL);
     if (!waylandContext->display) {
@@ -204,6 +205,8 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
       return;
     }
 
+    std::cout << "Got this far 00!" << std::endl;
+
     waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!waylandContext->xkb_context) {
       std::cout << "Oof 2!" << std::endl;
@@ -211,6 +214,8 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
       FailOnWaylandSetup(env);
       return;
     }
+
+    std::cout << "Got this far 0!" << std::endl;
 
     waylandContext->registry = wl_display_get_registry(waylandContext->display);
     wl_registry_add_listener(waylandContext->registry, &registry_listener, NULL);
