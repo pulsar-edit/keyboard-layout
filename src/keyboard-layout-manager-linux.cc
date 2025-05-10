@@ -80,7 +80,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
     return;
   }
 
-  char *keymap_string = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  char *keymap_string = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
   if (keymap_string == MAP_FAILED) {
     close(fd);
     return;
@@ -516,22 +516,26 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
     for (size_t i = 0; i < keyCodeMapSize; i++) {
       const char *dom3Code = keyCodeMap[i].dom3Code;
       uint xkbKeycode = keyCodeMap[i].xkbKeycode;
-    }
-    if (dom3Code && xkbKeycode > 0x0000) {
-      Napi::String dom3CodeKey = Napi::String::New(env, dom3Code);
-      Napi::Value unmodified = WaylandCharacterForCode(env, xkbKeycode, 0);
-      Napi::Value withShift = WaylandCharacterForCode(env, xkbKeycode, ctx->shift_mask);
-      Napi::Value withAltGraph = WaylandCharacterForCode(env, waylandContext, xkbKeycode, ctx->alt_gr_mask);
-      Napi::Value withAltGraphShift = WaylandCharacterForCode(env, waylandContext, xkbKeycode, ctx->shift_mask | ctx->alt_gr_mask);
+      if (dom3Code && xkbKeycode > 0x0000) {
+        Napi::String dom3CodeKey = Napi::String::New(env, dom3Code);
+        Napi::Value unmodified = WaylandCharacterForCode(env, waylandContext, xkbKeycode, 0);
+        Napi::Value withShift =
+            WaylandCharacterForCode(env, waylandContext, xkbKeycode, waylandContext->shift_mask);
+        Napi::Value withAltGraph = WaylandCharacterForCode(
+            env, waylandContext, xkbKeycode, waylandContext->alt_gr_mask);
+        Napi::Value withAltGraphShift = WaylandCharacterForCode(
+            env, waylandContext, xkbKeycode,
+            waylandContext->shift_mask | waylandContext->alt_gr_mask);
 
-      if (unmodified.IsString() || withShift.IsString() ||
-          withAltGraph.IsString() || withAltGraphShift.IsString()) {
-        Napi::Object entry = Napi::Object::New(env);
-        (entry).Set(unmodifiedKey, unmodified);
-        (entry).Set(withShiftKey, withShift);
-        (entry).Set(withAltGraphKey, withAltGraph);
-        (entry).Set(withAltGraphShiftKey, withAltGraphShift);
-        (result).Set(dom3CodeKey, entry);
+        if (unmodified.IsString() || withShift.IsString() ||
+            withAltGraph.IsString() || withAltGraphShift.IsString()) {
+          Napi::Object entry = Napi::Object::New(env);
+          (entry).Set(unmodifiedKey, unmodified);
+          (entry).Set(withShiftKey, withShift);
+          (entry).Set(withAltGraphKey, withAltGraph);
+          (entry).Set(withAltGraphShiftKey, withAltGraphShift);
+          (result).Set(dom3CodeKey, entry);
+        }
       }
     }
   } else {
