@@ -47,8 +47,10 @@ static int detect_display_server() {
 // =================
 
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
+  std::cout << "Registry global!" << std::endl;
   WaylandKeymapContext *ctx = (WaylandKeymapContext *)data;
   if (strcmp(interface, "wl_seat") == 0) {
+    std::cout << "Binding seat!" << std::endl;
     ctx->seat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     if (ctx->seat) {
       ctx->keyboard = wl_seat_get_keyboard(ctx->seat);
@@ -218,6 +220,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
     std::cout << "Got this far 0!" << std::endl;
 
     waylandContext->registry = wl_display_get_registry(waylandContext->display);
+    std::cout << "Listener!" << std::endl;
     wl_registry_add_listener(waylandContext->registry, &registry_listener, NULL);
 
     // Process registry events.
