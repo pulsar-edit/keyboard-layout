@@ -340,13 +340,13 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
   Napi::HandleScope scope(env);
   Napi::Value result;
 
-  // Store the current state
-  xkb_state* original_state = ctx->xkb_state;
-
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap || !waylandContext->xkb_state) {
       return env.Null();
     }
+
+    // Store the current state
+    xkb_state* original_state = waylandContext->xkb_state;
 
     struct xkb_state* temp_state = xkb_state_new(waylandContext->xkb_keymap);
     struct xkb_state* temp_state_with_shift = xkb_state_new(waylandContext->xkb_keymap);
