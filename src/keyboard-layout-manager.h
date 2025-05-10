@@ -54,6 +54,11 @@ public:
 
   void OnNotificationReceived();
 
+#if defined(__linux__) || defined(__FreeBSD__)
+  bool isWayland;
+  WaylandKeymapContext *waylandContext;
+#endif
+
 private:
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
   Napi::Value GetCurrentKeyboardLanguage(const Napi::CallbackInfo& info);
@@ -70,14 +75,9 @@ private:
   void Cleanup();
 
 #if defined(__linux__) || defined(__FreeBSD__)
-  bool isWayland;
-  WaylandKeymapContext* waylandContext;
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
-  xkb_context *xkbContext;
-  xkb_keymap *xkbKeymap;
-  xkb_state *xkbState;
 #endif
 
   bool isFinalizing = false;
