@@ -335,18 +335,6 @@ void KeyboardLayoutManager::PlatformTeardown() {
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
 }
 
-static KeyboardStateWithShift(WaylandKeymapContext* ctx) {
-  // Create a temporary state
-  struct xkb_state* temp_state = xkb_state_new(ctx->xkb_keymap);
-  if (!temp_state) {
-    return 0; // Default to layout 0 on error
-  }
-
-  // Get the shift mask
-  xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(ctx->xkb_keymap, XKB_MOD_NAME_SHIFT);
-  xkb_mod_mask_t shift_mask = 1 << shift_idx;
-}
-
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
   auto env = info.Env();
   Napi::HandleScope scope(env);
