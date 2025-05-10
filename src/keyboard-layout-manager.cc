@@ -1,6 +1,6 @@
 #include "keyboard-layout-manager.h"
-#ifdef DEBUG
 #include <iostream>
+#ifdef DEBUG
 #endif
 
 KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
@@ -21,6 +21,7 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 
   auto fn = info[0].As<Napi::Function>();
   callback = Napi::Persistent(fn);
+  std::cout << "Declaring tsfn!" << std::endl;
   tsfn = Napi::ThreadSafeFunction::New(
     env,
     callback.Value(),
@@ -28,6 +29,11 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
     0,
     1
   );
+
+  callback.Unref();
+  tsfn.Unref(env);
+
+  std::cout << "Unreffed the tsfn!" << std::endl;
 
   env.SetInstanceData<KeyboardLayoutManager>(this);
 
@@ -57,6 +63,7 @@ void KeyboardLayoutManager::OnNotificationReceived() {
 }
 
 void KeyboardLayoutManager::Cleanup() {
+  std::cout << "Cleanup!" << std::endl;
   callback.Reset();
   if (isFinalizing) return;
   tsfn.Abort();
@@ -65,6 +72,7 @@ void KeyboardLayoutManager::Cleanup() {
 }
 
 KeyboardLayoutManager::~KeyboardLayoutManager() {
+  std::cout << "Destructing!" << std::endl;
   isFinalizing = true;
   Cleanup();
 }

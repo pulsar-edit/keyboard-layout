@@ -590,8 +590,38 @@ void KeyboardLayoutManager::SetupWaylandPolling() {
   waylandPoll = new uv_poll_t;
   waylandPoll->data = this;
 
-  uv_poll_init(uv_default_loop(), waylandPoll, fd);
-  uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
+  // uv_poll_init(uv_default_loop(), waylandPoll, fd);
+  // uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
+
+  // Unref the handles so they don't prevent process exit
+  // uv_unref((uv_handle_t*)wayland_poll);
+
+  // // Create a check handle that runs in each iteration of the event loop
+  // exit_check = new uv_check_t;
+  // exit_check->data = this;
+  // uv_check_init(uv_default_loop(), exit_check);
+  //
+  // // Start the check handle
+  // uv_check_start(exit_check, [](uv_check_t* handle) {
+  //   KeyboardLayoutManager* manager = static_cast<KeyboardLayoutManager*>(handle->data);
+  //
+  //   // If we're allowing exit and no other active handles exist except ours,
+  //   // then unref our handles to allow process to exit
+  //   if (manager && manager->allow_exit) {
+  //     // Unref the handles (keeps them active but doesn't block exit)
+  //     uv_unref((uv_handle_t*)manager->wayland_poll);
+  //     uv_unref((uv_handle_t*)manager->exit_check);
+  //
+  //     // Only do this once
+  //     manager->allow_exit = false;
+  //   }
+  // });
+  //
+}
+
+// Call this when the JavaScript side indicates it's okay to exit
+void KeyboardLayoutManager::AllowExit() {
+  allow_exit = true;
 }
 
 void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
@@ -614,9 +644,9 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
 
 void KeyboardLayoutManager::CleanupWaylandPolling() {
   if (waylandPoll) {
-    uv_poll_stop(waylandPoll);
-    uv_close((uv_handle_t *)waylandPoll,
-             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
+    // uv_poll_stop(waylandPoll);
+    // uv_close((uv_handle_t *)waylandPoll,
+    //          [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
     waylandPoll = nullptr;
   }
 }
