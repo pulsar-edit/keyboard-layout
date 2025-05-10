@@ -490,10 +490,10 @@ static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_m
   xkb_keysym_t keysym = xkb_state_key_get_one_sym(temp_state, xkb_keycode);
 
   // Allocate memory for the result.
-  char *result = new char[32]; // And remember to use delete[] instead of free
+  char *result = new char[32];
 
   // Try to get a UTF-8 representation
-  int len = xkb_keysym_to_utf8(keysym, buffer, 32);
+  int len = xkb_keysym_to_utf8(keysym, result, 32);
 
   if (!result) {
     xkb_state_unref(temp_state);
