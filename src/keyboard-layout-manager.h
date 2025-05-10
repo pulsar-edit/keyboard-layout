@@ -54,10 +54,11 @@ public:
 
   void OnNotificationReceived();
 
-#if defined(__linux__) || defined(__FreeBSD__)
+// #if defined(__linux__) || defined(__FreeBSD__)
+  Napi::Env env;
   bool isWayland;
   WaylandKeymapContext *waylandContext;
-#endif
+// #endif
 
 private:
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
@@ -75,9 +76,15 @@ private:
   void Cleanup();
 
 #if defined(__linux__) || defined(__FreeBSD__)
+  uv_poll_t* waylandPoll;
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
+
+  static void OnWaylandEvent(uv_poll_t* handle, int status, int events);
+  void SetupWaylandPolling();
+  void CleanupWaylandPolling();
+  void ProcessCallbackWrapper();
 #endif
 
   bool isFinalizing = false;

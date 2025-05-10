@@ -129,7 +129,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   ctx->keymap_received = true;
-  that->OnNotificationReceived();
+  that->ProcessCallbackWrapper();
 }
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
@@ -194,7 +194,7 @@ static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
 }
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
-  auto env = info.Env();
+  env = info.Env();
 
   // isWayland = detect_display_server() == 1;
   isWayland = true;
@@ -248,6 +248,8 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
         return;
       }
     }
+
+    SetupWaylandPolling();
     // We're good. We can exit.
     return;
   }
@@ -291,6 +293,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
 }
 
 void KeyboardLayoutManager::PlatformTeardown() {
+  CleanupWaylandPolling();
   CleanupWaylandContext(waylandContext);
   callback.Reset();
 };
@@ -573,4 +576,48 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo& in
   }
 
   return result;
+}
+
+void KeyboardLayoutManager::SetupWaylandPolling() {
+  if (!waylandContext || !waylandContext->display) return;
+
+  int fd = wl_display_get_fd(waylandContext->display);
+
+  waylandPoll = new uv_poll_t;
+  waylandPoll->data = this;
+
+  uv_poll_init(uv_default_loop(), waylandPoll, fd);
+  uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
+}
+
+void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
+                                           int events) {
+  KeyboardLayoutManager *instance =
+      static_cast<KeyboardLayoutManager *>(handle->data);
+  if (status < 0) {
+    // Error occurred
+    return;
+  }
+
+  if (events & UV_READABLE) {
+    // Read events from the display
+    wl_display_read_events(instance->waylandContext->display);
+
+    // Dispatch pending events
+    wl_display_dispatch_pending(instance->waylandContext->display);
+  }
+}
+
+void KeyboardLayoutManager::CleanupWaylandPolling() {
+  if (waylandPoll) {
+    uv_poll_stop(waylandPoll);
+    uv_close((uv_handle_t *)waylandPoll,
+             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
+    waylandPoll = nullptr;
+  }
+}
+
+
+void KeyboardLayoutManager::ProcessCallbackWrapper() {
+  ProcessCallback(env, callback);
 }
