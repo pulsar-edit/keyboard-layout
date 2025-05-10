@@ -371,6 +371,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       57 + 8, // space
       28 + 8, // t
       29 + 8, // y
+      52 + 8, // dollar sign ($)
     };
 
     // Count how many times each layout index responds
