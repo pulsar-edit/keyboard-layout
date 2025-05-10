@@ -94,6 +94,8 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
     return;
   }
 
+  std::cout << "KEYMAP STRING: " << keymap_string << std::endl;
+
   ctx->xkb_keymap = xkb_keymap_new_from_string(ctx->xkb_context, keymap_string,
                                               XKB_KEYMAP_FORMAT_TEXT_V1,
                                               XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -612,39 +614,13 @@ Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext, XKeyEvent *
   }
 }
 
-xkb_state *copy_state_without_modifiers(WaylandKeymapContext *ctx) {
-  if (!ctx || !ctx->xkb_state || !ctx->xkb_keymap) {
-    return nullptr;
-  }
-
-  // Create a new state from the keymap
-  xkb_state *new_state = xkb_state_new(ctx->xkb_keymap);
-  if (!new_state) {
-    return nullptr;
-  }
-
-  // Get the current group/layout index
-  xkb_layout_index_t group = xkb_state_serialize_layout(ctx->xkb_state);
-
-  // Update the new state with:
-  // - No depressed modifiers (0)
-  // - No latched modifiers (0)
-  // - No locked modifiers (0)
-  // - Current layout/group index
-  // - No latched layout (0)
-  // - No locked layout (0)
-  xkb_state_update_mask(new_state, 0, 0, 0, group, 0, 0);
-
-  return new_state;
-}
-
 static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_mask_t modifiers) {
   // At first I thought we needed to offset this by 8, but it already seems
   // correct as-is.
   xkb_keycode_t xkb_keycode = keycode;
 
   // Create a copy of the XKB state so we can apply modifiers.
-  struct xkb_state *temp_state = copy_state_without_modifiers(ctx);
+  struct xkb_state *temp_state = xkb_state_new(ctx->xkb_keymap);
   if (!temp_state) {
     return strdup("error");
   }
