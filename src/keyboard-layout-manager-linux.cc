@@ -335,6 +335,18 @@ void KeyboardLayoutManager::PlatformTeardown() {
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
 }
 
+static KeyboardStateWithShift(WaylandKeymapContext* ctx) {
+  // Create a temporary state
+  struct xkb_state* temp_state = xkb_state_new(ctx->xkb_keymap);
+  if (!temp_state) {
+    return 0; // Default to layout 0 on error
+  }
+
+  // Get the shift mask
+  xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(ctx->xkb_keymap, XKB_MOD_NAME_SHIFT);
+  xkb_mod_mask_t shift_mask = 1 << shift_idx;
+}
+
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
   auto env = info.Env();
   Napi::HandleScope scope(env);
@@ -344,6 +356,15 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     if (!waylandContext || !waylandContext->xkb_keymap || !waylandContext->xkb_state) {
       return env.Null();
     }
+
+    struct xkb_state* temp_state = xkb_state_new(ctx->xkb_keymap);
+    struct xkb_state* temp_state_with_shift = xkb_state_new(ctx->xkb_keymap);
+
+    // Get the shift mask
+    xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(ctx->xkb_keymap, XKB_MOD_NAME_SHIFT);
+    xkb_mod_mask_t shift_mask = 1 << shift_idx;
+
+    xkb_state_update_mask(temp_state_with_shift, shift_mask, 0, 0, 0, 0 , 0);
 
     // xkb_layout_index_t active_layout = xkb_state_key_get_layout(waylandContext->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
     //
@@ -381,7 +402,12 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
 
     for (auto key : test_keys) {
-      xkb_layout_index_t layout_index_for_key = xkb_state_key_get_layout(waylandContext->xkb_state, key);
+      xkb_layout_index_t layout_index_for_key;
+      if (test_key === 59) {
+        layout_index_for_key = xkb_state_key_get_layout(temp_state_with_shift, key);
+      } else  {
+        layout_index_for_key = xkb_state_key_get_layout(temp_state, key);
+      }
       if (layout_index_for_key < num_layouts) {
         layout_scores[layout_index_for_key]++;
       }
@@ -415,16 +441,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       first = false;
     }
 
-    // // Build a string with all layout names
-    // for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
-    //   const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
-    //   if (layout_name) {
-    //     if (i > 0) {
-    //       strcat(layout_id, ",");
-    //     }
-    //     strcat(layout_id, layout_name);
-    //   }
-    // }
+    xkb_state_unref(temp_state);
+    xkb_state_unref(temp_state_with_shift);
 
     return Napi::String::New(env, ss.str());
   } else {
