@@ -225,7 +225,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
 
     waylandContext->registry = wl_display_get_registry(waylandContext->display);
     std::cout << "Listener!" << std::endl;
-    wl_registry_add_listener(waylandContext->registry, &registry_listener, NULL);
+    wl_registry_add_listener(waylandContext->registry, &registry_listener, waylandContext);
 
     // Process registry events.
     wl_display_roundtrip(waylandContext->display);
