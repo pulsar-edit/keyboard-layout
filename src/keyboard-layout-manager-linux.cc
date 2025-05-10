@@ -53,7 +53,9 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
     std::cout << "Binding seat!" << std::endl;
     ctx->seat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     if (ctx->seat) {
+      std::cout << "Seat bound! Getting keyboard…" << std::endl;
       ctx->keyboard = wl_seat_get_keyboard(ctx->seat);
+      std::cout << "…done!" << std::endl;
     }
   }
 }
