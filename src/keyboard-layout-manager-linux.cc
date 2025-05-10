@@ -369,7 +369,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
         // Build a fingerprint of key mappings for this layout
         std::string fingerprint;
-        const xkb_keycode_t test_keys[] = { 38+8, 39+8, 40+8 }; // a, s, d
+        const xkb_keycode_t test_keys[] = { 38, 39, 40 }; // a, s, d
 
         for (auto key : test_keys) {
             xkb_keysym_t sym = xkb_state_key_get_one_sym(test_state, key);
@@ -384,7 +384,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
     // Now get the fingerprint of the current active state
     std::string current_fingerprint;
-    const xkb_keycode_t test_keys[] = {38 + 8, 39 + 8, 40 + 8}; // a, s, d
+    const xkb_keycode_t test_keys[] = {38, 39, 40}; // a, s, d
 
     for (auto key : test_keys) {
       xkb_keysym_t sym = xkb_state_key_get_one_sym(temp_state, key);
