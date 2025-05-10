@@ -347,31 +347,36 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
+    const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
+
+    result = Napi::String::New(env, layout_name);
+
+
     // Get layout names - this is usually what you want for identification
-    char layout_id[256] = {0};
-
-    // Get number of layouts
-    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
-
-    // Build a string with all layout names
-    for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
-      const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
-      std::cout << "Layout " << i << " is " << layout_name << std::endl;
-      if (layout_name) {
-        if (i > 0) {
-          strcat(layout_id, ",");
-        }
-        strcat(layout_id, layout_name);
-      }
-    }
-
-    // You could also include the active layout index
-    // xkb_layout_index_t active_layout = 0;
-    // if (ctx->xkb_state) {
-    //   active_layout = xkb_state_serialize_layout(ctx->xkb_state);
+    // char layout_id[256] = {0};
+    //
+    // // Get number of layouts
+    // xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+    //
+    // // Build a string with all layout names
+    // for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
+    //   const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
+    //   std::cout << "Layout " << i << " is " << layout_name << std::endl;
+    //   if (layout_name) {
+    //     if (i > 0) {
+    //       strcat(layout_id, ",");
+    //     }
+    //     strcat(layout_id, layout_name);
+    //   }
     // }
-
-    return Napi::String::New(env, layout_id);
+    //
+    // // You could also include the active layout index
+    // // xkb_layout_index_t active_layout = 0;
+    // // if (ctx->xkb_state) {
+    // //   active_layout = xkb_state_serialize_layout(ctx->xkb_state);
+    // // }
+    //
+    // return Napi::String::New(env, layout_id);
 
 
     // Store the current state
