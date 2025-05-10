@@ -54,11 +54,11 @@ public:
 
   void OnNotificationReceived();
 
-// #if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__)
   Napi::Env env;
   bool isWayland;
   WaylandKeymapContext *waylandContext;
-// #endif
+#endif
 
 private:
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
