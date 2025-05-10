@@ -594,7 +594,7 @@ void KeyboardLayoutManager::SetupWaylandPolling() {
   uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
 
   // Unref the handles so they don't prevent process exit
-  uv_unref((uv_handle_t*)wayland_poll);
+  uv_unref((uv_handle_t*)waylandPoll);
 
   // // Create a check handle that runs in each iteration of the event loop
   // exit_check = new uv_check_t;
