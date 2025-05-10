@@ -344,8 +344,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    char layout_id[256] = {0};
-
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
     xkb_layout_index_t active_layout = 0;
 
@@ -354,8 +352,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    strcat(layout_id, layout_name);
-    return Napi::String::New(env, layout_name);
+    return Napi::String::New(env, active_layout_name);
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
