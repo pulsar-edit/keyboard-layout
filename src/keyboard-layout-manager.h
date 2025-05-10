@@ -56,7 +56,7 @@ public:
   void OnNotificationReceived();
 
 #if defined(__linux__) || defined(__FreeBSD__)
-  Napi::Env env;
+  Napi::Env _env;
   bool isWayland;
   WaylandKeymapContext *waylandContext;
 #endif

@@ -194,7 +194,8 @@ static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
 }
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
-  env = info.Env();
+  auto env = info.Env();
+  _env = env;
 
   // isWayland = detect_display_server() == 1;
   isWayland = true;
@@ -619,5 +620,5 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
 
 
 void KeyboardLayoutManager::ProcessCallbackWrapper() {
-  ProcessCallback(env, callback);
+  ProcessCallback(_env, callback);
 }
