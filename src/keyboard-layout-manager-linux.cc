@@ -340,8 +340,22 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
   Napi::Value result;
 
   if (isWayland) {
-    // TODO
-    return env.Null();
+    if (!waylandContext || !waylandContext->xkb_keymap) {
+      return env.Null();
+    }
+
+    char layout_id[256] = {0};
+
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+    xkb_layout_index_t active_layout = 0;
+
+    const char* active_layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
+    if (!active_layout_name) {
+      return env.Null();
+    }
+
+    strcat(layout_id, layout_name);
+    return Napi::String::New(env, layout_name);
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
@@ -476,7 +490,8 @@ Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext, XKeyEvent *
 }
 
 static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_mask_t modifiers) {
-  // XKB keycodes are offset by 8 from evdev keycodes.
+  // At first I thought we needed to offset this by 8, but it already seems
+  // correct as-is.
   xkb_keycode_t xkb_keycode = keycode;
 
   // Create a copy of the XKB state so we can apply modifiers.
