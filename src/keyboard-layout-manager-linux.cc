@@ -103,7 +103,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
 
   // Get shift mask
   xkb_mod_index_t shift_idx =
-      xkb_keymap_mod_get_index(app.xkb_keymap, XKB_MOD_NAME_SHIFT);
+      xkb_keymap_mod_get_index(ctx->xkb_keymap, XKB_MOD_NAME_SHIFT);
   if (shift_idx != XKB_MOD_INVALID) {
     ctx->shift_mask = 1 << shift_idx;
   }
@@ -115,7 +115,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
   for (size_t i = 0; i < alt_gr_length; i++) {
     xkb_mod_index_t idx =
-        xkb_keymap_mod_get_index(app.xkb_keymap, alt_gr_names[i]);
+        xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
     if (idx != XKB_MOD_INVALID) {
       ctx->alt_gr_mask = 1 << idx;
       break;
@@ -163,11 +163,11 @@ static const struct wl_keyboard_listener keyboard_listener = {
   keyboard_repeat_info
 };
 
-static FailOnWaylandSetup(Napi::Env env) {
+static void FailOnWaylandSetup(Napi::Env env) {
   Napi::Error::New(env, "Failed to connect to Wayland display").ThrowAsJavaScriptException();
 }
 
-static CleanupWaylandContext(WaylandKeymapContext* ctx) {
+static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
   if (ctx->xkb_state)
       xkb_state_unref(ctx->xkb_state);
   if (ctx->xkb_keymap)
@@ -203,8 +203,8 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
       return;
     }
 
-    waylandContext->context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (!waylandContext->context) {
+    waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (!waylandContext->xkb_context) {
       wl_display_disconnect(waylandContext->display);
       FailOnWaylandSetup(env);
       return;
@@ -470,9 +470,10 @@ static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_m
   xkb_keysym_t keysym = xkb_state_key_get_one_sym(temp_state, xkb_keycode);
 
   // Allocate memory for the result.
-  char *result = malloc(8); // Enough for any UTF-8 character.
+  char *result = new char[8]; // And remember to use delete[] instead of free
   if (!result) {
     xkb_state_unref(temp_state);
+    delete[] result;
     return NULL;
   }
 
@@ -494,8 +495,8 @@ static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_m
 static Napi::Value WaylandCharacterForCode(Napi::Env env, WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_mask_t modifiers) {
   char *result = get_key_char(ctx, keycode, modifiers);
   if (result) {
-    let wrappedResult = Napi::String::New(env, result);
-    free(result);
+    auto wrappedResult = Napi::String::New(env, result);
+    delete[] result;
     return wrappedResult;
   } else {
     return env.Null();
