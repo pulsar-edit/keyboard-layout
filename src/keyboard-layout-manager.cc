@@ -4,7 +4,8 @@
 #endif
 
 KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
- Napi::ObjectWrap<KeyboardLayoutManager>(info) {
+ Napi::ObjectWrap<KeyboardLayoutManager>(info),
+ _env(info.Env()) {
   #if defined(__linux__) || defined(__FreeBSD__)
     xInputContext = nullptr;
     xInputMethod = nullptr;
