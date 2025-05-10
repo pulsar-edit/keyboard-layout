@@ -59,6 +59,7 @@ public:
 #if defined(__linux__) || defined(__FreeBSD__)
   bool isWayland;
   WaylandKeymapContext *waylandContext;
+  void ProcessCallbackWrapper();
 #endif
 
 private:
@@ -85,7 +86,6 @@ private:
   static void OnWaylandEvent(uv_poll_t* handle, int status, int events);
   void SetupWaylandPolling();
   void CleanupWaylandPolling();
-  void ProcessCallbackWrapper();
 #endif
 
   bool isFinalizing = false;
