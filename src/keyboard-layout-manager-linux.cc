@@ -619,5 +619,5 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
 
 
 void KeyboardLayoutManager::ProcessCallbackWrapper() {
-  ProcessCallback(_env, callback.Value().As<Napi::Function>();
+  ProcessCallback(_env, callback.Value().As<Napi::Function>());
 }
