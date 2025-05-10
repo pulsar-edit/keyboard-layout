@@ -344,18 +344,24 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
-    xkb_layout_index_t active_layout_index = 0;
-    if (waylandContext->xkb_state) {
-      active_layout_index = xkb_state_serialize_layout(waylandContext->xkb_state);
+    // Get layout names - this is usually what you want for identification
+    char layout_id[256] = {0};
+
+    // Get number of layouts
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(ctx->xkb_keymap);
+
+    // Build a string with all layout names
+    for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
+      const char* layout_name = xkb_keymap_layout_get_name(ctx->xkb_keymap, i);
+      if (layout_name) {
+        if (i > 0) {
+          strcat(layout_id, ",");
+        }
+        strcat(layout_id, layout_name);
+      }
     }
 
-    const char* active_layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, active_layout_index);
-    if (!active_layout_name) {
-      return env.Null();
-    }
-
-    return Napi::String::New(env, active_layout_name);
+    return Napi::String::New(env, layout_id);
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
