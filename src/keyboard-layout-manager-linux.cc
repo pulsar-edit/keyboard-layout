@@ -362,7 +362,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     // For each layout, create a test state
     for (xkb_layout_index_t layout = 0; layout < num_layouts; layout++) {
         // Create a new state with just this layout active
-        xkb_state* test_state = xkb_state_new(ctx->xkb_keymap);
+        xkb_state* test_state = xkb_state_new(waylandContext->xkb_keymap);
 
         // Set the active group (layout)
         xkb_state_update_mask(test_state, 0, 0, 0, layout, 0, 0);
@@ -387,7 +387,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     const xkb_keycode_t test_keys[] = {38 + 8, 39 + 8, 40 + 8}; // a, s, d
 
     for (auto key : test_keys) {
-      xkb_keysym_t sym = xkb_state_key_get_one_sym(original_state, key);
+      xkb_keysym_t sym = xkb_state_key_get_one_sym(temp_state, key);
       char buf[8] = {0};
       xkb_keysym_to_utf8(sym, buf, sizeof(buf));
       current_fingerprint += buf;
@@ -395,10 +395,13 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
     std::cout << "Current fingerprint: " << current_fingerprint << std::endl;
 
+    xkb_state_unref(temp_state);
+    xkb_state_unref(temp_state_with_shift);
+
     // Find the matching layout
     for (xkb_layout_index_t i = 0; i < layout_fingerprints.size(); i++) {
       if (layout_fingerprints[i] == current_fingerprint) {
-        const char *name = xkb_keymap_layout_get_name(ctx->xkb_keymap, i);
+        const char *name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
         return Napi::String::New(env, name ? name : std::string("layout-") + std::to_string(i));
         // name ? name : std::string("layout-") + std::to_string(i);
       }
@@ -471,8 +474,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     //   first = false;
     // }
     //
-    // xkb_state_unref(temp_state);
-    // xkb_state_unref(temp_state_with_shift);
     //
     // return Napi::String::New(env, ss.str());
   } else {
