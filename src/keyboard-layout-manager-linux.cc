@@ -56,6 +56,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
       std::cout << "Seat bound! Getting keyboard…" << std::endl;
       ctx->keyboard = wl_seat_get_keyboard(ctx->seat);
       std::cout << "…done!" << std::endl;
+    } else {
+      std::cout << "Failed!" << std::endl;
     }
   }
 }
