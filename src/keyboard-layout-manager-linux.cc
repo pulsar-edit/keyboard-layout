@@ -345,7 +345,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     }
 
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
-    xkb_layout_index_t active_layout = 0;
+    xkb_layout_index_t active_layout_index = 0;
     if (waylandContext->xkb_state) {
       active_layout_index = xkb_state_serialize_layout(waylandContext->xkb_state);
     }
