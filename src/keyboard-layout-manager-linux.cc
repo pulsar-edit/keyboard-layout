@@ -193,18 +193,20 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   isWayland = true;
 
   if (isWayland) {
-
+    std::cout << "in PlatformSetup!" << std::endl;
     waylandContext = new WaylandKeymapContext();
     memset(waylandContext, 0, sizeof(WaylandKeymapContext));
 
     waylandContext->display = wl_display_connect(NULL);
     if (!waylandContext->display) {
+      std::cout << "Oof 1!" << std::endl;
       FailOnWaylandSetup(env);
       return;
     }
 
     waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!waylandContext->xkb_context) {
+      std::cout << "Oof 2!" << std::endl;
       wl_display_disconnect(waylandContext->display);
       FailOnWaylandSetup(env);
       return;
@@ -216,6 +218,8 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
     // Process registry events.
     wl_display_roundtrip(waylandContext->display);
 
+    std::cout << "Got this far 1!" << std::endl;
+
     // If a seat was found, add a keyboard listener.
     if (waylandContext->keyboard) {
       wl_keyboard_add_listener(
@@ -224,11 +228,13 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
         NULL
       );
     } else {
+      std::cout << "Oof 3!" << std::endl;
       CleanupWaylandContext(waylandContext);
       FailOnWaylandSetup(env);
       return;
     }
 
+    std::cout << "Got this far 2!" << std::endl;
     // Wait for the keymap to be received.
     while (!waylandContext->keymap_received) {
       if (wl_display_dispatch(waylandContext->display) < 0) {
@@ -238,6 +244,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
       }
     }
 
+    std::cout << "Miracle!" << std::endl;
     // We're good. We can exit.
     return;
   }
