@@ -48,7 +48,7 @@ static int detect_display_server() {
 // =================
 
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
-  WaylandKeymapContext *ctx = (static_cast<KeyboardLayoutManager *>(manager))->waylandContext;
+  WaylandKeymapContext *ctx = (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
   if (strcmp(interface, "wl_seat") == 0) {
     ctx->seat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     if (ctx->seat) {
@@ -73,7 +73,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
 
   WaylandKeymapContext *ctx =
-      (static_cast<KeyboardLayoutManager *>(manager))->waylandContext;
+      (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
     close(fd);
@@ -123,7 +123,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   ctx->keymap_received = true;
-  (static_cast<KeyboardLayoutManager *>(manager))->OnNotificationReceived();
+  (static_cast<KeyboardLayoutManager *>(data))->OnNotificationReceived();
 }
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
