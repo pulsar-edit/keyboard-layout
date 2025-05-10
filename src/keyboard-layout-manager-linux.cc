@@ -356,6 +356,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     // Build a string with all layout names
     for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
       const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
+      std::cout << "Layout " << i << " is " << layout_name << std::endl;
       if (layout_name) {
         if (i > 0) {
           strcat(layout_id, ",");
