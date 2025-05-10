@@ -348,11 +348,11 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     char layout_id[256] = {0};
 
     // Get number of layouts
-    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(ctx->xkb_keymap);
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
 
     // Build a string with all layout names
     for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
-      const char* layout_name = xkb_keymap_layout_get_name(ctx->xkb_keymap, i);
+      const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
       if (layout_name) {
         if (i > 0) {
           strcat(layout_id, ",");
