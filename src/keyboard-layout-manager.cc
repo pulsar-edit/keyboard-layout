@@ -11,6 +11,7 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
   #endif
 
   auto env = info.Env();
+  _env = env;
   CHECK_VOID(
     info[0].IsFunction(),
     "Expected function as first argument",
@@ -72,7 +73,6 @@ void KeyboardLayoutManager::Init(Napi::Env env, Napi::Object exports) {
   std::cout << "KeyboardLayoutManager::Init" << std::endl;
 #endif
 
-  _env = env;
   Napi::Function func = DefineClass(env, "KeyboardLayoutManager", {
     InstanceMethod<&KeyboardLayoutManager::GetCurrentKeyboardLayout>("getCurrentKeyboardLayout", napi_default_method),
     InstanceMethod<&KeyboardLayoutManager::GetCurrentKeyboardLanguage>("getCurrentKeyboardLanguage", napi_default_method),
