@@ -13,11 +13,6 @@
 #include <iostream>
 #include <locale.h>
 
-struct CallbackContext {
-  KeyboardLayoutManager* instance;
-  Napi::Env env;
-};
-
 // More robust detection combining multiple checks
 static int detect_display_server() {
   // Method 1: XDG_SESSION_TYPE - Can be most reliable when set correctly
@@ -197,11 +192,6 @@ static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
       wl_display_disconnect(ctx->display);
   }
 }
-
-struct CallbackContext {
-  KeyboardLayoutManager *instance;
-  Napi::Env env;
-};
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
