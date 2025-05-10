@@ -590,11 +590,11 @@ void KeyboardLayoutManager::SetupWaylandPolling() {
   waylandPoll = new uv_poll_t;
   waylandPoll->data = this;
 
-  // uv_poll_init(uv_default_loop(), waylandPoll, fd);
-  // uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
+  uv_poll_init(uv_default_loop(), waylandPoll, fd);
+  uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
 
-  // Unref the handles so they don't prevent process exit
-  // uv_unref((uv_handle_t*)wayland_poll);
+  Unref the handles so they don't prevent process exit
+  uv_unref((uv_handle_t*)wayland_poll);
 
   // // Create a check handle that runs in each iteration of the event loop
   // exit_check = new uv_check_t;
@@ -639,9 +639,9 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
 
 void KeyboardLayoutManager::CleanupWaylandPolling() {
   if (waylandPoll) {
-    // uv_poll_stop(waylandPoll);
-    // uv_close((uv_handle_t *)waylandPoll,
-    //          [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
+    uv_poll_stop(waylandPoll);
+    uv_close((uv_handle_t *)waylandPoll,
+             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
     waylandPoll = nullptr;
   }
 }
