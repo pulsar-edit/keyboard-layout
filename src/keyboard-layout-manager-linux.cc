@@ -403,7 +403,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
     for (auto key : test_keys) {
       xkb_layout_index_t layout_index_for_key;
-      if (test_key === 59) {
+      if (key == 59) {
         layout_index_for_key = xkb_state_key_get_layout(temp_state_with_shift, key);
       } else  {
         layout_index_for_key = xkb_state_key_get_layout(temp_state, key);
