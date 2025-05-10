@@ -619,11 +619,6 @@ void KeyboardLayoutManager::SetupWaylandPolling() {
   //
 }
 
-// Call this when the JavaScript side indicates it's okay to exit
-void KeyboardLayoutManager::AllowExit() {
-  allow_exit = true;
-}
-
 void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
                                            int events) {
   KeyboardLayoutManager *instance =
