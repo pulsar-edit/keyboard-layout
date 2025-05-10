@@ -9,6 +9,7 @@
 #include <cwctype>
 #include <cctype>
 #include <stdio.h>
+#include <sstream>
 #include <iostream>
 #include <locale.h>
 
@@ -380,7 +381,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
     for (auto key : test_keys) {
       xkb_layout_index_t layout_index_for_key = xkb_state_key_get_layout(waylandContext->xkb_state, key);
-      if (layout < num_layouts) {
+      if (layout_index_for_key < num_layouts) {
         layout_scores[layout_index_for_key]++;
       }
     }
@@ -393,9 +394,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     // Sort by score (descending)
     std::sort(score_pairs.begin(), score_pairs.end(),
               [](const auto &a, const auto &b) { return a.second > b.second; });
-
-    // Get number of layouts
-    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
 
     std::stringstream ss;
     bool first = true;
@@ -424,7 +422,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     //     strcat(layout_id, layout_name);
     //   }
     // }
-    
+
     return Napi::String::New(env, ss.str());
   } else {
     // X11
