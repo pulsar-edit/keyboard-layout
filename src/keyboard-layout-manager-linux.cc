@@ -354,85 +354,127 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
     xkb_state_update_mask(temp_state_with_shift, shift_mask, 0, 0, 0, 0 , 0);
 
-    // xkb_layout_index_t active_layout = xkb_state_key_get_layout(waylandContext->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
-    //
-    // const char* active_layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, group);
-    //
-    // if (active_layout_name) {
-    //   return Napi::String::New(env, active_layout_name);
-    // }
-
-    // Keys to test - include a variety of keys from different parts of keyboard
-    const xkb_keycode_t test_keys[] = {
-      38 + 8, // a
-      39 + 8, // s
-      40 + 8, // d
-      41 + 8, // f
-      44 + 8, // j
-      45 + 8, // k
-      46 + 8, // l
-      24 + 8, // q
-      25 + 8, // w
-      30 + 8, // u
-      31 + 8, // i
-      32 + 8, // o
-      33 + 8, // p
-      57 + 8, // space
-      28 + 8, // t
-      29 + 8, // y
-      51 + 8, // hash/pound sign (#)
-    };
-
-    // Count how many times each layout index responds
-    std::unordered_map<xkb_layout_index_t, int> layout_scores;
-
-    // Get number of layouts
+    // Create fingerprints for each layout
+    std::vector<std::string> layout_fingerprints;
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
 
+
+    // For each layout, create a test state
+    for (xkb_layout_index_t layout = 0; layout < num_layouts; layout++) {
+        // Create a new state with just this layout active
+        xkb_state* test_state = xkb_state_new(ctx->xkb_keymap);
+
+        // Set the active group (layout)
+        xkb_state_update_mask(test_state, 0, 0, 0, layout, 0, 0);
+
+        // Build a fingerprint of key mappings for this layout
+        std::string fingerprint;
+        const xkb_keycode_t test_keys[] = { 38+8, 39+8, 40+8 }; // a, s, d
+
+        for (auto key : test_keys) {
+            xkb_keysym_t sym = xkb_state_key_get_one_sym(test_state, key);
+            char buf[8] = {0};
+            xkb_keysym_to_utf8(sym, buf, sizeof(buf));
+            fingerprint += buf;
+        }
+
+        layout_fingerprints.push_back(fingerprint);
+        xkb_state_unref(test_state);
+    }
+
+    // Now get the fingerprint of the current active state
+    std::string current_fingerprint;
+    const xkb_keycode_t test_keys[] = {38 + 8, 39 + 8, 40 + 8}; // a, s, d
+
     for (auto key : test_keys) {
-      xkb_layout_index_t layout_index_for_key;
-      if (key == 59) {
-        layout_index_for_key = xkb_state_key_get_layout(temp_state_with_shift, key);
-      } else  {
-        layout_index_for_key = xkb_state_key_get_layout(temp_state, key);
-      }
-      if (layout_index_for_key < num_layouts) {
-        layout_scores[layout_index_for_key]++;
-      }
-      const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, layout_index_for_key);
-      std::cout << "Key " << key << " handled by layout " << name << " at index " << layout_index_for_key << std::endl;
+      xkb_keysym_t sym = xkb_state_key_get_one_sym(original_state, key);
+      char buf[8] = {0};
+      xkb_keysym_to_utf8(sym, buf, sizeof(buf));
+      current_fingerprint += buf;
     }
 
-    std::vector<std::pair<xkb_layout_index_t, int>> score_pairs;
-    for (const auto &pair : layout_scores) {
-      score_pairs.push_back(pair);
-    }
+    std::cout << "Current fingerprint: " << current_fingerprint << std::endl;
 
-    // Sort by score (descending)
-    std::sort(score_pairs.begin(), score_pairs.end(),
-              [](const auto &a, const auto &b) { return a.second > b.second; });
-
-    std::stringstream ss;
-    bool first = true;
-
-    for (const auto &pair : score_pairs) {
-      xkb_layout_index_t idx = pair.first;
-      int score = pair.second;
-
-      const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, idx);
-      std::string layout_name = name ? name : std::string("layout-") + std::to_string(idx);
-
-      if (!first) {
-        ss << ", ";
+    // Find the matching layout
+    for (xkb_layout_index_t i = 0; i < layout_fingerprints.size(); i++) {
+      if (layout_fingerprints[i] == current_fingerprint) {
+        const char *name = xkb_keymap_layout_get_name(ctx->xkb_keymap, i);
+        return Napi::String::New(env, name ? name : std::string("layout-") + std::to_string(i));
+        // name ? name : std::string("layout-") + std::to_string(i);
       }
-      ss << layout_name;
-      first = false;
     }
 
-    xkb_state_unref(temp_state);
-    xkb_state_unref(temp_state_with_shift);
-
-    return Napi::String::New(env, ss.str());
+    // // Keys to test - include a variety of keys from different parts of keyboard
+    // const xkb_keycode_t test_keys[] = {
+    //   38 + 8, // a
+    //   39 + 8, // s
+    //   40 + 8, // d
+    //   41 + 8, // f
+    //   44 + 8, // j
+    //   45 + 8, // k
+    //   46 + 8, // l
+    //   24 + 8, // q
+    //   25 + 8, // w
+    //   30 + 8, // u
+    //   31 + 8, // i
+    //   32 + 8, // o
+    //   33 + 8, // p
+    //   57 + 8, // space
+    //   28 + 8, // t
+    //   29 + 8, // y
+    //   51 + 8, // hash/pound sign (#)
+    // };
+    //
+    // // Count how many times each layout index responds
+    // std::unordered_map<xkb_layout_index_t, int> layout_scores;
+    //
+    // // Get number of layouts
+    // xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+    //
+    // for (auto key : test_keys) {
+    //   xkb_layout_index_t layout_index_for_key;
+    //   if (key == 59) {
+    //     layout_index_for_key = xkb_state_key_get_layout(temp_state_with_shift, key);
+    //   } else  {
+    //     layout_index_for_key = xkb_state_key_get_layout(temp_state, key);
+    //   }
+    //   if (layout_index_for_key < num_layouts) {
+    //     layout_scores[layout_index_for_key]++;
+    //   }
+    //   const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, layout_index_for_key);
+    //   std::cout << "Key " << key << " handled by layout " << name << " at index " << layout_index_for_key << std::endl;
+    // }
+    //
+    // std::vector<std::pair<xkb_layout_index_t, int>> score_pairs;
+    // for (const auto &pair : layout_scores) {
+    //   score_pairs.push_back(pair);
+    // }
+    //
+    // // Sort by score (descending)
+    // std::sort(score_pairs.begin(), score_pairs.end(),
+    //           [](const auto &a, const auto &b) { return a.second > b.second; });
+    //
+    // std::stringstream ss;
+    // bool first = true;
+    //
+    // for (const auto &pair : score_pairs) {
+    //   xkb_layout_index_t idx = pair.first;
+    //   int score = pair.second;
+    //
+    //   const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, idx);
+    //   std::string layout_name = name ? name : std::string("layout-") + std::to_string(idx);
+    //
+    //   if (!first) {
+    //     ss << ", ";
+    //   }
+    //   ss << layout_name;
+    //   first = false;
+    // }
+    //
+    // xkb_state_unref(temp_state);
+    // xkb_state_unref(temp_state_with_shift);
+    //
+    // return Napi::String::New(env, ss.str());
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
