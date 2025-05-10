@@ -49,7 +49,7 @@ static int detect_display_server() {
 
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
   auto env = (static_cast<Napi::Env*>(data));
-  auto that = env.GetInstanceData<KeyboardLayoutManager>();
+  auto that = env->GetInstanceData<KeyboardLayoutManager>();
   auto ctx = that->waylandContext;
   // WaylandKeymapContext *ctx = (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
   if (strcmp(interface, "wl_seat") == 0) {
@@ -76,7 +76,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
 
   auto env = (static_cast<Napi::Env*>(data));
-  auto that = env.GetInstanceData<KeyboardLayoutManager>();
+  auto that = env->GetInstanceData<KeyboardLayoutManager>();
   auto ctx = that->waylandContext;
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
