@@ -195,7 +195,6 @@ static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
-  _env = env;
 
   // isWayland = detect_display_server() == 1;
   isWayland = true;
