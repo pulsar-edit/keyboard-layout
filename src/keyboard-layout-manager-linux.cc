@@ -477,7 +477,7 @@ Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext, XKeyEvent *
 
 static char* get_key_char(WaylandKeymapContext *ctx, uint32_t keycode, xkb_mod_mask_t modifiers) {
   // XKB keycodes are offset by 8 from evdev keycodes.
-  xkb_keycode_t xkb_keycode = keycode + 8;
+  xkb_keycode_t xkb_keycode = keycode;
 
   // Create a copy of the XKB state so we can apply modifiers.
   struct xkb_state *temp_state = xkb_state_new(ctx->xkb_keymap);
