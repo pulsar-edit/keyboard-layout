@@ -4,6 +4,8 @@
 #include <X11/XKBlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XKBrules.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include <cwctype>
 #include <cctype>
 #include <stdio.h>
@@ -47,7 +49,7 @@ static int detect_display_server() {
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
   WaylandKeymapContext *ctx = (WaylandKeymapContext *)data;
   if (strcmp(interface, "wl_seat") == 0) {
-    ctx->seat = wl_registry_bind(registry, name, &wl_seat_interface, 1);
+    ctx->seat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     if (ctx->seat) {
       ctx->keyboard = wl_seat_get_keyboard(ctx->seat);
     }
@@ -84,7 +86,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
     return;
   }
 
-  ctx.xkb_keymap = xkb_keymap_new_from_string(ctx->xkb_context, keymap_string,
+  ctx->xkb_keymap = xkb_keymap_new_from_string(ctx->xkb_context, keymap_string,
                                               XKB_KEYMAP_FORMAT_TEXT_V1,
                                               XKB_KEYMAP_COMPILE_NO_FLAGS);
 
@@ -170,7 +172,7 @@ static CleanupWaylandContext(WaylandKeymapContext* ctx) {
       xkb_state_unref(ctx->xkb_state);
   if (ctx->xkb_keymap)
       xkb_keymap_unref(ctx->xkb_keymap);
-  if (ctx.xkb_context)
+  if (ctx->xkb_context)
       xkb_context_unref(ctx->xkb_context);
   if (ctx->keyboard)
       wl_keyboard_destroy(ctx->keyboard);
