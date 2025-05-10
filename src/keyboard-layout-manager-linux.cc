@@ -301,8 +301,7 @@ void KeyboardLayoutManager::PlatformTeardown() {
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
 }
 
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
-  auto env = info.Env();
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   Napi::HandleScope scope(env);
   Napi::Value result;
 
@@ -335,6 +334,11 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
 
   std::cout << "Returning!" << std::endl;
   return result;
+}
+
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
+  auto env = info.Env();
+  return GetCurrentKeyboardLayout(env);
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(const Napi::CallbackInfo& info) {
