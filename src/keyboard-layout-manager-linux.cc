@@ -357,11 +357,11 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    struct xkb_state* temp_state = xkb_state_new(ctx->xkb_keymap);
-    struct xkb_state* temp_state_with_shift = xkb_state_new(ctx->xkb_keymap);
+    struct xkb_state* temp_state = xkb_state_new(waylandContext->xkb_keymap);
+    struct xkb_state* temp_state_with_shift = xkb_state_new(waylandContext->xkb_keymap);
 
     // Get the shift mask
-    xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(ctx->xkb_keymap, XKB_MOD_NAME_SHIFT);
+    xkb_mod_index_t shift_idx = xkb_keymap_mod_get_index(waylandContext->xkb_keymap, XKB_MOD_NAME_SHIFT);
     xkb_mod_mask_t shift_mask = 1 << shift_idx;
 
     xkb_state_update_mask(temp_state_with_shift, shift_mask, 0, 0, 0, 0 , 0);
