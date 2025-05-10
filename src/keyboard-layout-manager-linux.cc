@@ -344,20 +344,76 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
       return env.Null();
     }
 
-    xkb_layout_index_t active_layout = xkb_state_get_layout(waylandContext->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+    // xkb_layout_index_t active_layout = xkb_state_key_get_layout(waylandContext->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+    //
+    // const char* active_layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, group);
+    //
+    // if (active_layout_name) {
+    //   return Napi::String::New(env, active_layout_name);
+    // }
 
-    const char* active_layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, group);
+    // Keys to test - include a variety of keys from different parts of keyboard
+    const xkb_keycode_t test_keys[] = {
+      38 + 8, // a
+      39 + 8, // s
+      40 + 8, // d
+      41 + 8, // f
+      44 + 8, // j
+      45 + 8, // k
+      46 + 8, // l
+      24 + 8, // q
+      25 + 8, // w
+      30 + 8, // u
+      31 + 8, // i
+      32 + 8, // o
+      33 + 8, // p
+      57 + 8, // space
+      28 + 8, // t
+      29 + 8, // y
+    };
 
-    if (active_layout_name) {
-      return Napi::String::New(env, active_layout_name);
+    // Count how many times each layout index responds
+    std::unordered_map<xkb_layout_index_t, int> layout_scores;
+
+    // Get number of layouts
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+
+    for (auto key : test_keys) {
+      xkb_layout_index_t layout_index_for_key = xkb_state_key_get_layout(waylandContext->xkb_state, key);
+      if (layout < num_layouts) {
+        layout_scores[layout_index_for_key]++;
+      }
     }
 
-    // // Get layout names - this is usually what you want for identification
-    // char layout_id[256] = {0};
-    //
-    // // Get number of layouts
-    // xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
-    //
+    std::vector<std::pair<xkb_layout_index_t, int>> score_pairs;
+    for (const auto &pair : layout_scores) {
+      score_pairs.push_back(pair);
+    }
+
+    // Sort by score (descending)
+    std::sort(score_pairs.begin(), score_pairs.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+
+    // Get number of layouts
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(waylandContext->xkb_keymap);
+
+    std::stringstream ss;
+    bool first = true;
+
+    for (const auto &pair : score_pairs) {
+      xkb_layout_index_t idx = pair.first;
+      int score = pair.second;
+
+      const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, idx);
+      std::string layout_name = name ? name : std::string("layout-") + std::to_string(idx);
+
+      if (!first) {
+        ss << ", ";
+      }
+      ss << layout_name;
+      first = false;
+    }
+
     // // Build a string with all layout names
     // for (xkb_layout_index_t i = 0; i < num_layouts; i++) {
     //   const char* layout_name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, i);
@@ -368,8 +424,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     //     strcat(layout_id, layout_name);
     //   }
     // }
-    //
-    // return Napi::String::New(env, layout_id);
+    
+    return Napi::String::New(env, ss.str());
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
