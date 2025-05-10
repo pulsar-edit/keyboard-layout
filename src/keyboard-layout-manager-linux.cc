@@ -340,6 +340,9 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
   Napi::HandleScope scope(env);
   Napi::Value result;
 
+  // Store the current state
+  xkb_state* original_state = ctx->xkb_state;
+
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap || !waylandContext->xkb_state) {
       return env.Null();
@@ -387,7 +390,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
     const xkb_keycode_t test_keys[] = {38, 39, 40}; // a, s, d
 
     for (auto key : test_keys) {
-      xkb_keysym_t sym = xkb_state_key_get_one_sym(temp_state, key);
+      xkb_keysym_t sym = xkb_state_key_get_one_sym(original_state, key);
       char buf[8] = {0};
       xkb_keysym_to_utf8(sym, buf, sizeof(buf));
       current_fingerprint += buf;
