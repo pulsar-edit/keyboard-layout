@@ -400,7 +400,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::Callback
         layout_scores[layout_index_for_key]++;
       }
       const char* name = xkb_keymap_layout_get_name(waylandContext->xkb_keymap, layout_index_for_key);
-      std::cout << "Key " << key << " handled by layout " << name << std::endl;
+      std::cout << "Key " << key << " handled by layout " << name << " at index " << layout_index_for_key << std::endl;
     }
 
     std::vector<std::pair<xkb_layout_index_t, int>> score_pairs;
