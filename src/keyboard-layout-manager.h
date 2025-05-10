@@ -2,6 +2,7 @@
 #define SRC_KEYBORD_LAYOUT_OBSERVER_H_
 
 #include "napi.h"
+#include <uv.h>
 
 #define CHECK(cond, msg, env)                                  \
 if (!(cond)) {                                                 \
