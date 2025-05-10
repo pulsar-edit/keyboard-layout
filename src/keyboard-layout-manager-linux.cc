@@ -13,6 +13,11 @@
 #include <iostream>
 #include <locale.h>
 
+struct CallbackContext {
+  KeyboardLayoutManager* instance;
+  Napi::Env env;
+};
+
 // More robust detection combining multiple checks
 static int detect_display_server() {
   // Method 1: XDG_SESSION_TYPE - Can be most reliable when set correctly
@@ -48,10 +53,11 @@ static int detect_display_server() {
 // =================
 
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
-  auto env = (static_cast<Napi::Env*>(data));
-  auto that = env->GetInstanceData<KeyboardLayoutManager>();
+  // auto env = (static_cast<Napi::Env*>(data));
+  // auto that = env->GetInstanceData<KeyboardLayoutManager>();
+  // auto ctx = that->waylandContext;
+  auto that = (static_cast<KeyboardLayoutManager *>(data));
   auto ctx = that->waylandContext;
-  // WaylandKeymapContext *ctx = (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
   if (strcmp(interface, "wl_seat") == 0) {
     ctx->seat = (struct wl_seat*)wl_registry_bind(registry, name, &wl_seat_interface, 1);
     if (ctx->seat) {
@@ -75,8 +81,9 @@ static const struct wl_registry_listener registry_listener = {
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
 
-  auto env = (static_cast<Napi::Env*>(data));
-  auto that = env->GetInstanceData<KeyboardLayoutManager>();
+  // auto env = (static_cast<Napi::Env*>(data));
+  // auto that = env->GetInstanceData<KeyboardLayoutManager>();
+  auto that = (static_cast<KeyboardLayoutManager *>(data));
   auto ctx = that->waylandContext;
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
@@ -191,6 +198,11 @@ static void CleanupWaylandContext(WaylandKeymapContext* ctx) {
   }
 }
 
+struct CallbackContext {
+  KeyboardLayoutManager *instance;
+  Napi::Env env;
+};
+
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   auto env = info.Env();
 
@@ -216,7 +228,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
 
     waylandContext->registry = wl_display_get_registry(waylandContext->display);
     std::cout << "Listener!" << std::endl;
-    wl_registry_add_listener(waylandContext->registry, &registry_listener, env);
+    wl_registry_add_listener(waylandContext->registry, &registry_listener, this);
 
     // Process registry events.
     wl_display_roundtrip(waylandContext->display);
@@ -228,7 +240,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
       wl_keyboard_add_listener(
         waylandContext->keyboard,
         &keyboard_listener,
-        env
+        this
       );
     } else {
       std::cout << "Oof 3!" << std::endl;
