@@ -59,6 +59,7 @@ public:
   bool isWayland;
   WaylandKeymapContext *waylandContext;
   void ProcessCallbackWrapper();
+  const char* currentLayout;
 #endif
 
 private:
