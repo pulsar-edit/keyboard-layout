@@ -669,27 +669,3 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
 void KeyboardLayoutManager::ProcessCallbackWrapper() {
   ProcessCallback(_env, callback.Value().As<Napi::Function>());
 }
-
-
-//////
-
-void print_modifier_info(WaylandKeymapContext* ctx, xkb_mod_index_t mod_idx) {
-    const char* mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
-    fprintf(stderr, "Modifier %d: %s\n", mod_idx, mod_name ? mod_name : "unnamed");
-
-    // List which keys are mapped to this modifier
-    for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
-        // Skip if this keycode isn't valid
-        if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
-            continue;
-        }
-
-        // Check if this key affects our modifier
-        if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
-            xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
-            const char* key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
-            fprintf(stderr, "  Key %d (%s) affects this modifier\n",
-                   keycode, key_name ? key_name : "unnamed");
-        }
-    }
-}
