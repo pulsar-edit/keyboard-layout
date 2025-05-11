@@ -59,10 +59,10 @@ public:
   bool isWayland;
   WaylandKeymapContext *waylandContext;
   void ProcessCallbackWrapper();
-  const char* currentLayout;
 #endif
 
 private:
+  const char* GetCurrentKeyboardLayout();
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
   Napi::Value GetCurrentKeyboardLanguage(const Napi::CallbackInfo& info);
   Napi::Value GetInstalledKeyboardLanguages(const Napi::CallbackInfo& info);

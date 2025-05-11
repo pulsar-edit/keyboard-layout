@@ -44,15 +44,26 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 }
 
 // Runs on the main thread.
+#ifdef __linux__
+    // Linux-specific version declaration
+void KeyboardLayoutManager::ProcessCallback(Napi::Env env, Napi::Function callback);
+#else
 void KeyboardLayoutManager::ProcessCallback(
   Napi::Env env,
   Napi::Function callback
 ) {
   auto that = env.GetInstanceData<KeyboardLayoutManager>();
-  that->GetCurrentKeyboardLayout(env);
+  Napi::Value result = that->GetCurrentKeyboardLayout(env);
 
-  const char* current = that->currentLayout;
-  Napi::String str = Napi::String::New(env, current);
+  callback.Call({ result });
+
+  // Napi::Value result;
+  // if (strcmp(rawResult, "") == 0) {
+  //   result = env.Null();
+  // } else {
+  //   result = Napi::String::New(env, rawResult);
+  // }
+  // that->GetCurrentKeyboardLayout(env);
 
   // if (current.IsString()) {
   //   Napi::String str = current.As<Napi::String>();
@@ -62,7 +73,7 @@ void KeyboardLayoutManager::ProcessCallback(
   //   std::cout << "Sanity check: is NOT a string!";
   // }
 
-  callback.Call({ str });
+  // callback.Call({ result });
 
   // Create arguments array with the layout
   // std::vector<napi_value> args = { str };
@@ -80,6 +91,7 @@ void KeyboardLayoutManager::ProcessCallback(
   // callback.MakeCallback(global, {current.As<Napi::String>()});
   // callback.Call({current});
 }
+#endif
 
 // Runs on a background thread.
 void KeyboardLayoutManager::OnNotificationReceived() {

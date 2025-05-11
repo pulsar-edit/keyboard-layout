@@ -344,7 +344,6 @@ const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
         xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
 
     std::cout << "Current layout: " << layout_name << std::endl;
-    currentLayout = layout_name;
     result = layout_name;
     // result = Napi::String::New(env, layout_name);
   } else {
@@ -375,11 +374,54 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   Napi::HandleScope scope(env);
 
   const char* rawResult = GetCurrentKeyboardLayout();
-  if (rawResult == "") {
+  if (strcmp(rawResult, "") == 0) {
     return env.Null();
   }
   return Napi::String::New(env, rawResult);
 }
+
+void KeyboardLayoutManager::ProcessCallback(
+  Napi::Env env,
+  Napi::Function callback
+) {
+  auto that = env.GetInstanceData<KeyboardLayoutManager>();
+  const char* rawResult = that->GetCurrentKeyboardLayout();
+
+  Napi::Value result;
+  if (strcmp(rawResult, "") == 0) {
+    result = env.Null();
+  } else {
+    result = Napi::String::New(env, rawResult);
+  }
+  // that->GetCurrentKeyboardLayout(env);
+
+  // if (current.IsString()) {
+  //   Napi::String str = current.As<Napi::String>();
+  //   std::string value = str.Utf8Value();
+  //   std::cout << "Sanity check: value is " << value << std::endl;
+  // } else {
+  //   std::cout << "Sanity check: is NOT a string!";
+  // }
+
+  callback.Call({ result });
+
+  // Create arguments array with the layout
+  // std::vector<napi_value> args = { str };
+  //
+  // // Call JS callback with explicit this and args
+  // napi_value global;
+  // napi_get_global(env, &global);
+  //
+  // napi_value result;
+  // napi_call_function(env, global, callback, 1, args.data(), &result);
+  //
+  // std::cout << "Weird Result: " << result << std::endl;
+
+  // Napi::Object global = env.Global();
+  // callback.MakeCallback(global, {current.As<Napi::String>()});
+  // callback.Call({current});
+}
+
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
     const Napi::CallbackInfo &info) {
