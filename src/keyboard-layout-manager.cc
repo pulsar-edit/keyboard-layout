@@ -60,7 +60,7 @@ void KeyboardLayoutManager::ProcessCallback(
   }
 
   Napi::Object global = env.Global();
-  callback.MakeCallback(global, {current});
+  callback.MakeCallback(global, {current.As<Napi::String>()});
   // callback.Call({current});
 }
 
