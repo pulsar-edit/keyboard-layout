@@ -77,7 +77,7 @@ void KeyboardLayoutManager::ProcessCallback(
 }
 
 // Static callback that doesn't rely on GetCurrentKeyboardLayout
-static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback, void* /*data*/) {
+static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback) {
   // Create a handle scope for this execution context
   Napi::HandleScope scope(env);
 
