@@ -380,7 +380,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   return Napi::String::New(env, rawResult);
 }
 
-static void KeyboardLayoutManager::ProcessCallback(
+void KeyboardLayoutManager::ProcessCallback(
   Napi::Env env,
   Napi::Function callback
 ) {

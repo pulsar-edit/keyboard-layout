@@ -44,10 +44,7 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 }
 
 // Runs on the main thread.
-#ifdef __linux__
-    // Linux-specific version declaration
-void KeyboardLayoutManager::ProcessCallback(Napi::Env env, Napi::Function callback);
-#else
+#ifndef __linux__
 void KeyboardLayoutManager::ProcessCallback(
   Napi::Env env,
   Napi::Function callback
