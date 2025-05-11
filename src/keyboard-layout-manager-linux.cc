@@ -12,27 +12,6 @@
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
 
-static void PrintModifierInfo(WaylandKeymapContext *ctx,
-                              xkb_mod_index_t mod_idx) {
-  const char* mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
-  std::cout << "Mod name: " << mod_name << std::endl;
-
-  // List which keys are mapped to this modifier
-  for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
-    // Skip if this keycode isn't valid
-    if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
-      continue;
-    }
-
-    // Check if this key affects our modifier
-    if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
-        xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
-      const char *key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
-      std::cout << " Key " << key_name << " affects this modifier!"
-                << std::endl;
-    }
-  }
-}
 
 // More robust detection combining multiple checks
 static int detect_display_server() {
@@ -158,7 +137,6 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
         xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
     if (idx != XKB_MOD_INVALID) {
       std::cout << "Using AltGr name: " << alt_gr_names[i] << std::endl;
-      PrintModifierInfo(ctx, idx);
       ctx->alt_gr_mask = 1 << idx;
       break;
     }
