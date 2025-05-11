@@ -32,8 +32,6 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
   callback.Unref();
   tsfn.Unref(env);
 
-  std::cout << "Unreffed the tsfn!" << std::endl;
-
   env.SetInstanceData<KeyboardLayoutManager>(this);
 
   env.AddCleanupHook([this]() {
@@ -48,9 +46,6 @@ void KeyboardLayoutManager::ProcessCallback(
   Napi::Env env,
   Napi::Function callback
 ) {
-  // auto that = env.GetInstanceData<KeyboardLayoutManager>();
-  // Napi::Value result = that->GetCurrentKeyboardLayout(env);
-
   callback.Call({});
 }
 
@@ -62,7 +57,6 @@ void KeyboardLayoutManager::OnNotificationReceived() {
 }
 
 void KeyboardLayoutManager::Cleanup() {
-  std::cout << "Cleanup!" << std::endl;
   callback.Reset();
   if (isFinalizing) return;
   tsfn.Abort();
@@ -71,7 +65,6 @@ void KeyboardLayoutManager::Cleanup() {
 }
 
 KeyboardLayoutManager::~KeyboardLayoutManager() {
-  std::cout << "Destructing!" << std::endl;
   isFinalizing = true;
   Cleanup();
 }

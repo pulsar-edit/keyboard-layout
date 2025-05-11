@@ -28,8 +28,10 @@ if (!(cond)) {                                                 \
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <X11/Xlib.h>
+#ifdef HAS_WAYLAND
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
+#endif
 #include <string>
 
 typedef struct {

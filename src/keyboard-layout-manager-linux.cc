@@ -10,13 +10,17 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <xkbcommon/xkbcommon.h>
+#include <optional>
 
 // Enumerates the various modifiers on this keyboard and tests which one brings
 // us to Level 3. This correlates to what we expect from the AltGr key.
-static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
+static std::optional<size_t> IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
+  if (!ctx->xkb_keymap) return std::nullopt;
   struct xkb_state *state = xkb_state_new(ctx->xkb_keymap);
+
+  // Iterate through all the modifiers.
   for (xkb_mod_index_t mod = 0; mod < xkb_keymap_num_mods(ctx->xkb_keymap); mod++) {
+    // Build a mask consisting of just this modifier key.
     xkb_mod_mask_t mask = 1 << mod;
     const char *mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod);
     xkb_state_update_mask(state, mask, 0, 0, 0, 0, 0);
@@ -24,18 +28,21 @@ static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
     bool activates_level3 = false;
     int level3_keys_count = 0;
 
+    // Iterate through all the keycodes and see if any of them correspond to
+    // Level 3 when combined with this modifier.
     for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
       if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
         continue;
       }
 
-      xkb_layout_index_t group = 0;
-      xkb_level_index_t level = xkb_state_key_get_level(state, keycode, group);
+      // By observation, index 0 is always the active layout, at least for
+      // GNOME; we hope it's universally true.
+      xkb_layout_index_t active_layout = 0;
+      xkb_level_index_t level = xkb_state_key_get_level(state, keycode, active_layout);
 
+      // Levels are zero-indexed, so “2” is what we expect here.
       if (level == 2) {
-        const char *key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
         level3_keys_count++;
-
         if (level3_keys_count >= 3) {
           activates_level3 = true;
           break;
@@ -53,7 +60,7 @@ static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
   }
 
   xkb_state_unref(state);
-  return 0;
+  return std::nullopt;
 }
 
 // REGISTRY LISTENER
@@ -140,11 +147,18 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   // We know that `AltGr` is meant to bring us to keyboard level 3, so we'll
   // try this: loop through the set of modifiers and return the first one that
   // brings us to Level 3 for three or more separate keycodes.
-  size_t alt_gr_index = IndexOfLevel3Modifier(ctx);
+  auto alt_gr_index_result = IndexOfLevel3Modifier(ctx);
 
-  if (alt_gr_index > 0) {
+  if (alt_gr_index_result.has_value()) {
+    size_t alt_gr_index = *alt_gr_index_result;
     ctx->alt_gr_mask = 1 << alt_gr_index;
   } else {
+    // If that approach fails, then we can try a more desperate approach in
+    // which we pick the most likely names for the `AltGr` key and try each of
+    // them in order of likelihood of success. Here we're returning the first
+    // such modifier that exists on this keymap, whether or not it actually
+    // produces the expected result, so it's more speculative than the first
+    // approach.
     const char *alt_gr_names[] = {
         "ISO_Level3_Shift", // Most common for European layouts
         "Mode_switch",      // Often used as an alias
@@ -160,7 +174,9 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
       xkb_mod_index_t idx =
           xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
       if (idx != XKB_MOD_INVALID) {
+#ifdef DEBUG
         std::cout << "Using AltGr name: " << alt_gr_names[i] << std::endl;
+#endif
         ctx->alt_gr_mask = 1 << idx;
         break;
       }
@@ -174,6 +190,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   ctx->keymap_received = true;
 }
 
+// `wayland-client` requires that we
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
                            uint32_t serial, struct wl_surface *surface,
                            struct wl_array *keys) {
@@ -232,176 +249,6 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
   }
 }
 
-void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
-  auto env = info.Env();
-
-  // Assume we're on Wayland to start out.
-  isWayland = true;
-
-  waylandContext = new WaylandKeymapContext();
-  memset(waylandContext, 0, sizeof(WaylandKeymapContext));
-
-  waylandContext->display = wl_display_connect(NULL);
-  if (!waylandContext->display) {
-    CleanupWaylandContext(waylandContext);
-    goto x11;
-  }
-
-  waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-  if (!waylandContext->xkb_context) {
-    CleanupWaylandContext(waylandContext);
-    goto x11;
-  }
-
-  // If we can get as far as creating a Wayland display and context, it is
-  // assumed that we are on Wayland and not X11. But since any failure further
-  // along the Wayland path of this function is fatal, there's no reason not to
-  // at least _try_ to fallback to X11.
-
-  waylandContext->registry = wl_display_get_registry(waylandContext->display);
-  std::cout << "Listener!" << std::endl;
-  wl_registry_add_listener(waylandContext->registry, &registry_listener,
-                           this);
-
-  // Process registry events.
-  wl_display_roundtrip(waylandContext->display);
-
-  // If a seat was found, add a keyboard listener.
-  if (waylandContext->keyboard) {
-    wl_keyboard_add_listener(waylandContext->keyboard, &keyboard_listener,
-                             this);
-  } else {
-    CleanupWaylandContext(waylandContext);
-    goto x11;
-  }
-
-  // Wait for the keymap to be received.
-  while (!waylandContext->keymap_received) {
-    if (wl_display_dispatch(waylandContext->display) < 0) {
-      CleanupWaylandContext(waylandContext);
-      goto x11;
-    }
-  }
-
-  // Once we've gotten this far, we have everything we need to inspect keyboard
-  // behavior. Now we'll set up polling on the event loop so we can find out
-  // when the keyboard layout changes.
-  SetupWaylandPolling();
-  return;
-
-x11:
-  isWayland = false;
-  xDisplay = XOpenDisplay("");
-  CHECK_VOID(xDisplay, "Could not connect to X display", env);
-
-  xInputMethod = XOpenIM(xDisplay, 0, 0, 0);
-  if (!xInputMethod)
-    return;
-
-  XIMStyles *styles = 0;
-  if (XGetIMValues(xInputMethod, XNQueryInputStyle, &styles, NULL) || !styles) {
-    return;
-  }
-
-  XIMStyle bestMatchStyle = 0;
-  for (int i = 0; i < styles->count_styles; i++) {
-    XIMStyle thisStyle = styles->supported_styles[i];
-    if (thisStyle == (XIMPreeditNothing | XIMStatusNothing)) {
-      bestMatchStyle = thisStyle;
-      break;
-    }
-  }
-  XFree(styles);
-  if (!bestMatchStyle)
-    return;
-
-  Window window;
-  int revert_to;
-  XGetInputFocus(xDisplay, &window, &revert_to);
-  if (window != BadRequest) {
-    xInputContext =
-        XCreateIC(xInputMethod, XNInputStyle, bestMatchStyle, XNClientWindow,
-                  window, XNFocusWindow, window, NULL);
-  }
-}
-
-void KeyboardLayoutManager::PlatformTeardown() {
-  CleanupWaylandPolling();
-  CleanupWaylandContext(waylandContext);
-  callback.Reset();
-};
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
-    const Napi::CallbackInfo &info) {
-  auto env = info.Env();
-  Napi::HandleScope scope(env);
-  Napi::Value result;
-
-  if (isWayland) {
-    if (!waylandContext || !waylandContext->xkb_keymap ||
-        !waylandContext->xkb_state) {
-      return env.Null();
-    }
-
-    // Based on lots of experimentation with Gnome/Wayland, the layout at index
-    // 0 will always be the active layout. This may or may not be true for
-    // other Wayland server implementations, but we'll go with it for now —
-    // because if it isn't true, we'd be hard-pressed to discover that
-    // information any other way.
-    const char *layout_name =
-        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
-
-#ifdef DEBUG
-    std::cout << "Current layout: " << layout_name << std::endl;
-#endif
-    result = Napi::String::New(env, layout_name);
-  } else {
-    // X11
-    XkbRF_VarDefsRec vdr;
-    char *tmp = NULL;
-    if (XkbRF_GetNamesProp(xDisplay, &tmp, &vdr) && vdr.layout) {
-      XkbStateRec xkbState;
-      XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
-      if (vdr.variant) {
-        result = Napi::String::New(
-            env, std::string(vdr.layout) + "," + std::string(vdr.variant) +
-                     " [" + std::to_string(xkbState.group) + "]");
-      } else {
-        result =
-            Napi::String::New(env, std::string(vdr.layout) + " [" +
-                                       std::to_string(xkbState.group) + "]");
-      }
-    } else {
-      result = env.Null();
-    }
-  }
-  return result;
-}
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(
-    const Napi::CallbackInfo &info) {
-  // No distinction between “language” and “layout” on Linux.
-  return GetCurrentKeyboardLayout(info);
-}
-
-Napi::Value KeyboardLayoutManager::GetInstalledKeyboardLanguages(
-    const Napi::CallbackInfo &info) {
-  auto env = info.Env();
-  Napi::HandleScope scope(env);
-  return env.Undefined();
-}
-
-struct KeycodeMapEntry {
-  uint xkbKeycode;
-  const char *dom3Code;
-};
-
-#define USB_KEYMAP_DECLARATION static const KeycodeMapEntry keyCodeMap[] =
-#define USB_KEYMAP(usb, evdev, xkb, win, mac, code, id)                        \
-  { xkb, code }
-
-#include "keycode_converter_data.inc"
-
 Napi::Value CharacterForNativeCodeWayland(Napi::Env env,
                                           xkb_context *xkbContext,
                                           xkb_keymap *xkbKeymap,
@@ -450,40 +297,8 @@ Napi::Value CharacterForNativeCodeWayland(Napi::Env env,
   }
 }
 
-Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext,
-                                   XKeyEvent *keyEvent, uint xkbKeycode,
-                                   uint state) {
-  keyEvent->keycode = xkbKeycode;
-  keyEvent->state = state;
-
-  if (xInputContext) {
-    wchar_t characters[2];
-    char utf8[MB_CUR_MAX * 2 + 1];
-    int count =
-        XwcLookupString(xInputContext, keyEvent, characters, 2, NULL, NULL);
-    size_t len = wcstombs(utf8, characters, sizeof(utf8));
-    if (len == (size_t)-1) {
-      return env.Null();
-    }
-
-    if (count > 0 && !std::iswcntrl(characters[0])) {
-      return Napi::String::New(env, std::string(utf8, len));
-    } else {
-      return env.Null();
-    }
-  } else {
-    // Graceful fallback for systems where no window is open or no input
-    // context can be found.
-    char characters[2];
-    int count = XLookupString(keyEvent, characters, 2, NULL, NULL);
-    if (count > 0 && !std::iscntrl(characters[0])) {
-      return Napi::String::New(env, std::string(characters, count));
-    } else {
-      return env.Null();
-    }
-  }
-}
-
+// Given a Wayland context, a keycode, and a modifier mask, return the
+// character that would be produced by that keycode.
 static char *get_key_char(WaylandKeymapContext *ctx, uint32_t keycode,
                           xkb_mod_mask_t modifiers) {
   // At first I thought we needed to offset this by 8, but it already seems
@@ -538,6 +353,279 @@ static Napi::Value WaylandCharacterForCode(Napi::Env env,
   }
 }
 
+void KeyboardLayoutManager::SetupWaylandPolling() {
+  if (!waylandContext || !waylandContext->display)
+    return;
+
+  int fd = wl_display_get_fd(waylandContext->display);
+
+  waylandPoll = new uv_poll_t;
+  waylandPoll->data = this;
+
+  uv_poll_init(uv_default_loop(), waylandPoll, fd);
+  uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
+
+  // Unref the handles so they don't prevent process exit.
+  uv_unref((uv_handle_t *)waylandPoll);
+}
+
+void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
+                                           int events) {
+  std::cout << "OnWaylandEvent!" << std::endl;
+  KeyboardLayoutManager *instance =
+      static_cast<KeyboardLayoutManager *>(handle->data);
+  if (status < 0) {
+    // Error occurred
+    std::cout << "Error! " << status << std::endl;
+    return;
+  }
+
+  if (events & UV_READABLE) {
+    std::cout << "Dispatching pending events…" << std::endl;
+    while (wl_display_prepare_read(instance->waylandContext->display) != 0) {
+      wl_display_dispatch_pending(instance->waylandContext->display);
+    }
+    // Now read events (shouldn't block since we've been notified data is
+    // available)
+    if (wl_display_read_events(instance->waylandContext->display) < 0) {
+      std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
+      return;
+    }
+    // Dispatch the events we just read
+    std::cout << "Dispatching pending events…" << std::endl;
+    wl_display_dispatch_pending(instance->waylandContext->display);
+  }
+}
+
+void KeyboardLayoutManager::CleanupWaylandPolling() {
+  if (waylandPoll) {
+    uv_poll_stop(waylandPoll);
+    uv_close((uv_handle_t *)waylandPoll,
+             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
+    waylandPoll = nullptr;
+  }
+}
+
+
+void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
+  auto env = info.Env();
+
+#ifdef HAS_WAYLAND
+  // When we're compiled with Wayland support, assume we're on Wayland to start
+  // out, and revert to the X11 approach only if we fail to obtain a keymap via
+  // Wayland APIs.
+  isWayland = true;
+
+  waylandContext = new WaylandKeymapContext();
+  memset(waylandContext, 0, sizeof(WaylandKeymapContext));
+
+  waylandContext->display = wl_display_connect(NULL);
+  if (!waylandContext->display) {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
+  }
+
+  waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (!waylandContext->xkb_context) {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
+  }
+
+  // If we can get as far as creating a Wayland display and context, it is
+  // assumed that we are on Wayland and not X11. But since any failure further
+  // along the Wayland path of this function is fatal, there's no reason not to
+  // at least _try_ to fallback to X11.
+
+  // Set up registry listeners so that we can discover a seat and a keyboard.
+  waylandContext->registry = wl_display_get_registry(waylandContext->display);
+  wl_registry_add_listener(waylandContext->registry, &registry_listener,
+                           this);
+
+  // Process registry events.
+  wl_display_roundtrip(waylandContext->display);
+
+  // If a seat was found, add a keyboard listener. This should trigger the
+  // sending of a `keymap` event that will allow us to get the data we want.
+  if (waylandContext->keyboard) {
+    wl_keyboard_add_listener(waylandContext->keyboard, &keyboard_listener,
+                             this);
+  } else {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
+  }
+
+  // Wait for the keymap to be received.
+  //
+  // TODO: Timeout?
+  while (!waylandContext->keymap_received) {
+    if (wl_display_dispatch(waylandContext->display) < 0) {
+      CleanupWaylandContext(waylandContext);
+      goto x11;
+    }
+  }
+
+  // Once we've gotten this far, we have everything we need to inspect keyboard
+  // behavior. Now we'll set up polling on the event loop so we can find out
+  // when the keyboard layout changes.
+  SetupWaylandPolling();
+  return;
+
+#endif
+
+x11:
+  isWayland = false;
+  xDisplay = XOpenDisplay("");
+  CHECK_VOID(xDisplay, "Could not connect to X display", env);
+
+  xInputMethod = XOpenIM(xDisplay, 0, 0, 0);
+  if (!xInputMethod)
+    return;
+
+  XIMStyles *styles = 0;
+  if (XGetIMValues(xInputMethod, XNQueryInputStyle, &styles, NULL) || !styles) {
+    return;
+  }
+
+  XIMStyle bestMatchStyle = 0;
+  for (int i = 0; i < styles->count_styles; i++) {
+    XIMStyle thisStyle = styles->supported_styles[i];
+    if (thisStyle == (XIMPreeditNothing | XIMStatusNothing)) {
+      bestMatchStyle = thisStyle;
+      break;
+    }
+  }
+  XFree(styles);
+  if (!bestMatchStyle)
+    return;
+
+  Window window;
+  int revert_to;
+  XGetInputFocus(xDisplay, &window, &revert_to);
+  if (window != BadRequest) {
+    xInputContext =
+        XCreateIC(xInputMethod, XNInputStyle, bestMatchStyle, XNClientWindow,
+                  window, XNFocusWindow, window, NULL);
+  }
+}
+
+void KeyboardLayoutManager::PlatformTeardown() {
+#ifdef HAS_WAYLAND
+  CleanupWaylandPolling();
+  CleanupWaylandContext(waylandContext);
+#endif
+  callback.Reset();
+};
+
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
+    const Napi::CallbackInfo &info) {
+  auto env = info.Env();
+  Napi::HandleScope scope(env);
+  Napi::Value result;
+
+  if (isWayland) {
+#ifdef HAS_WAYLAND
+    if (!waylandContext || !waylandContext->xkb_keymap ||
+        !waylandContext->xkb_state) {
+      return env.Null();
+    }
+
+    // Based on lots of experimentation with Gnome/Wayland, the layout at index
+    // 0 will always be the active layout. This may or may not be true for
+    // other Wayland server implementations, but we'll go with it for now —
+    // because if it isn't true, we'd be hard-pressed to discover that
+    // information any other way.
+    const char *layout_name =
+        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
+
+#ifdef DEBUG
+    std::cout << "Current layout: " << layout_name << std::endl;
+#endif
+    result = Napi::String::New(env, layout_name);
+#endif
+  } else {
+    // X11
+    XkbRF_VarDefsRec vdr;
+    char *tmp = NULL;
+    if (XkbRF_GetNamesProp(xDisplay, &tmp, &vdr) && vdr.layout) {
+      XkbStateRec xkbState;
+      XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
+      if (vdr.variant) {
+        result = Napi::String::New(
+            env, std::string(vdr.layout) + "," + std::string(vdr.variant) +
+                     " [" + std::to_string(xkbState.group) + "]");
+      } else {
+        result =
+            Napi::String::New(env, std::string(vdr.layout) + " [" +
+                                       std::to_string(xkbState.group) + "]");
+      }
+    } else {
+      result = env.Null();
+    }
+  }
+  return result;
+}
+
+
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(
+    const Napi::CallbackInfo &info) {
+  // No distinction between “language” and “layout” on Linux.
+  return GetCurrentKeyboardLayout(info);
+}
+
+Napi::Value KeyboardLayoutManager::GetInstalledKeyboardLanguages(
+    const Napi::CallbackInfo &info) {
+  auto env = info.Env();
+  Napi::HandleScope scope(env);
+  return env.Undefined();
+}
+
+struct KeycodeMapEntry {
+  uint xkbKeycode;
+  const char *dom3Code;
+};
+
+#define USB_KEYMAP_DECLARATION static const KeycodeMapEntry keyCodeMap[] =
+#define USB_KEYMAP(usb, evdev, xkb, win, mac, code, id)                        \
+  { xkb, code }
+
+#include "keycode_converter_data.inc"
+
+
+Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext,
+                                   XKeyEvent *keyEvent, uint xkbKeycode,
+                                   uint state) {
+  keyEvent->keycode = xkbKeycode;
+  keyEvent->state = state;
+
+  if (xInputContext) {
+    wchar_t characters[2];
+    char utf8[MB_CUR_MAX * 2 + 1];
+    int count =
+        XwcLookupString(xInputContext, keyEvent, characters, 2, NULL, NULL);
+    size_t len = wcstombs(utf8, characters, sizeof(utf8));
+    if (len == (size_t)-1) {
+      return env.Null();
+    }
+
+    if (count > 0 && !std::iswcntrl(characters[0])) {
+      return Napi::String::New(env, std::string(utf8, len));
+    } else {
+      return env.Null();
+    }
+  } else {
+    // Graceful fallback for systems where no window is open or no input
+    // context can be found.
+    char characters[2];
+    int count = XLookupString(keyEvent, characters, 2, NULL, NULL);
+    if (count > 0 && !std::iscntrl(characters[0])) {
+      return Napi::String::New(env, std::string(characters, count));
+    } else {
+      return env.Null();
+    }
+  }
+}
+
+
 Napi::Value
 KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
   auto env = info.Env();
@@ -549,6 +637,7 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
       Napi::String::New(env, "withAltGraphShift");
 
   if (isWayland) {
+#ifdef HAS_WAYLAND
     size_t keyCodeMapSize = sizeof(keyCodeMap) / sizeof(keyCodeMap[0]);
     for (size_t i = 0; i < keyCodeMapSize; i++) {
       const char *dom3Code = keyCodeMap[i].dom3Code;
@@ -576,6 +665,7 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
         }
       }
     }
+#endif
   } else {
     // Clear cached keymap.
     XMappingEvent eventMap = {MappingNotify,   0, false, xDisplay, 0,
@@ -623,100 +713,3 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
 
   return result;
 }
-
-void KeyboardLayoutManager::SetupWaylandPolling() {
-  if (!waylandContext || !waylandContext->display)
-    return;
-
-  int fd = wl_display_get_fd(waylandContext->display);
-
-  waylandPoll = new uv_poll_t;
-  waylandPoll->data = this;
-
-  uv_poll_init(uv_default_loop(), waylandPoll, fd);
-  uv_poll_start(waylandPoll, UV_READABLE, OnWaylandEvent);
-
-  // Unref the handles so they don't prevent process exit
-  uv_unref((uv_handle_t *)waylandPoll);
-
-  // // Create a check handle that runs in each iteration of the event loop
-  // exit_check = new uv_check_t;
-  // exit_check->data = this;
-  // uv_check_init(uv_default_loop(), exit_check);
-  //
-  // // Start the check handle
-  // uv_check_start(exit_check, [](uv_check_t* handle) {
-  //   KeyboardLayoutManager* manager =
-  //   static_cast<KeyboardLayoutManager*>(handle->data);
-  //
-  //   // If we're allowing exit and no other active handles exist except ours,
-  //   // then unref our handles to allow process to exit
-  //   if (manager && manager->allow_exit) {
-  //     // Unref the handles (keeps them active but doesn't block exit)
-  //     uv_unref((uv_handle_t*)manager->wayland_poll);
-  //     uv_unref((uv_handle_t*)manager->exit_check);
-  //
-  //     // Only do this once
-  //     manager->allow_exit = false;
-  //   }
-  // });
-  //
-}
-
-void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
-                                           int events) {
-  std::cout << "OnWaylandEvent!" << std::endl;
-  KeyboardLayoutManager *instance =
-      static_cast<KeyboardLayoutManager *>(handle->data);
-  if (status < 0) {
-    // Error occurred
-    std::cout << "Error! " << status << std::endl;
-    return;
-  }
-
-  if (events & UV_READABLE) {
-    std::cout << "Dispatching pending events…" << std::endl;
-    while (wl_display_prepare_read(instance->waylandContext->display) != 0) {
-      wl_display_dispatch_pending(instance->waylandContext->display);
-    }
-    // Now read events (shouldn't block since we've been notified data is
-    // available)
-    if (wl_display_read_events(instance->waylandContext->display) < 0) {
-      std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
-      return;
-    }
-    // Dispatch the events we just read
-    std::cout << "Dispatching pending events…" << std::endl;
-    wl_display_dispatch_pending(instance->waylandContext->display);
-  }
-}
-
-void KeyboardLayoutManager::CleanupWaylandPolling() {
-  if (waylandPoll) {
-    uv_poll_stop(waylandPoll);
-    uv_close((uv_handle_t *)waylandPoll,
-             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
-    waylandPoll = nullptr;
-  }
-}
-
-// // Runs on the main thread.
-// void KeyboardLayoutManager::ProcessCallback(
-//   Napi::Env env,
-//   Napi::Function callback
-// ) {
-//   auto that = env.GetInstanceData<KeyboardLayoutManager>();
-//   auto current = that->GetCurrentKeyboardLayout(env);
-//
-//   if (current.IsString()) {
-//     Napi::String str = current.As<Napi::String>();
-//     std::string value = str.Utf8Value();
-//     std::cout << "Sanity check: value is " << value << std::endl;
-//   } else {
-//     std::cout << "Sanity check: is NOT a string!";
-//   }
-//
-//   Napi::Object global = env.Global();
-//   callback.MakeCallback(global, {current.As<Napi::String>()});
-//   // callback.Call({current});
-// }
