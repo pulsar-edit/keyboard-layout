@@ -332,6 +332,7 @@ void KeyboardLayoutManager::PlatformTeardown() {
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {}
 
 const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
+  const char* result;
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap ||
         !waylandContext->xkb_state) {
