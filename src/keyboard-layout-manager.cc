@@ -35,7 +35,7 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
     0,                          // max_queue_size
     1,                          // initial_thread_count
     this,
-    [](Napi::Env, void *) {     // finalize_cb
+    [](Napi::Env, void* finalizeData) {     // finalize_cb
                                 // No-op finalize callback
     },
     this
