@@ -109,39 +109,34 @@ static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback) {
 }
 
 
-// Runs on a background thread.
 void KeyboardLayoutManager::OnNotificationReceived() {
-  // Create data - even though we're not using it, it helps with debugging
   const char* marker = "LAYOUT_CHANGE_EVENT";
 
-  // More explicit call
   napi_status status = tsfn.NonBlockingCall(
-    const_cast<char*>(marker),  // "data" to pass (just a marker)
+    const_cast<char*>(marker),
     [](Napi::Env env, Napi::Function jsCallback, char* data) {
-      // Extra debug info
-      fprintf(stderr, "ThreadSafeFunction callback executing. Data marker: %s\n", data);
+      fprintf(stderr, "ThreadSafeFunction callback executing.\n");
 
-      // Create a simple hard-coded value
-      Napi::String layout = Napi::String::New(env, "test_nonblocking_call");
+      // Try to get the instance data
+      auto that = env.GetInstanceData<KeyboardLayoutManager>();
+      if (that) {
+        fprintf(stderr, "Successfully retrieved instance data\n");
 
-      // Call with this value
-      jsCallback.Call({layout});
+        // Still use a hard-coded string for now
+        Napi::String layout = Napi::String::New(env, "test_with_instance_data");
+        jsCallback.Call({layout});
+      } else {
+        fprintf(stderr, "Failed to get instance data\n");
+
+        // Fall back to a different string so we can tell the difference
+        Napi::String layout = Napi::String::New(env, "no_instance_data");
+        jsCallback.Call({layout});
+      }
     }
   );
-  // We don't need to send any arguments; we just need to signal the main
-  // thread.
-  // tsfn.BlockingCall(
-  //     "layout_change",
-  //     [](Napi::Env env, Napi::Function jsCallback, const char *event_type) {
-  //       if (strcmp(event_type, "layout_change") == 0) {
-  //         // Create a string argument
-  //         Napi::String arg = Napi::String::New(env, "test_layout_value");
-  //
-  //         // Try calling with this test value first
-  //         jsCallback.Call({arg});
-  //       }
-  //     });
-  // tsfn.BlockingCall(LayoutChangeCallback);
+
+  fprintf(stderr, "ThreadSafeFunction call status: %s\n",
+          status == napi_ok ? "OK" : "ERROR");
 }
 
 void KeyboardLayoutManager::Cleanup() {
