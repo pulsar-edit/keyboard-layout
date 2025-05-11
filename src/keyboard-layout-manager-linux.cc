@@ -166,9 +166,12 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
       }
     }
   }
-
+  if (ctx->keymap_received) {
+    // Don't fire the callback unless we've already been through this code path
+    // once.
+    that->OnNotificationReceived();
+  }
   ctx->keymap_received = true;
-  that->OnNotificationReceived();
 }
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
