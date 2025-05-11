@@ -80,18 +80,18 @@ void KeyboardLayoutManager::ProcessCallback(
 void KeyboardLayoutManager::OnNotificationReceived() {
   // We don't need to send any arguments; we just need to signal the main
   // thread.
-  tsfn.BlockingCall(
-      "layout_change",
-      [](Napi::Env env, Napi::Function jsCallback, const char *event_type) {
-        if (strcmp(event_type, "layout_change") == 0) {
-          // Create a string argument
-          Napi::String arg = Napi::String::New(env, "test_layout_value");
-
-          // Try calling with this test value first
-          jsCallback.Call({arg});
-        }
-      });
-  // tsfn.BlockingCall(KeyboardLayoutManager::ProcessCallback);
+  // tsfn.BlockingCall(
+  //     "layout_change",
+  //     [](Napi::Env env, Napi::Function jsCallback, const char *event_type) {
+  //       if (strcmp(event_type, "layout_change") == 0) {
+  //         // Create a string argument
+  //         Napi::String arg = Napi::String::New(env, "test_layout_value");
+  //
+  //         // Try calling with this test value first
+  //         jsCallback.Call({arg});
+  //       }
+  //     });
+  tsfn.BlockingCall(KeyboardLayoutManager::ProcessCallback);
 }
 
 void KeyboardLayoutManager::Cleanup() {
