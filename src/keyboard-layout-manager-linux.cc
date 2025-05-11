@@ -346,6 +346,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
     const char *layout_name =
         xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
 
+    std::cout << "Current layout: " << layout_name << std::endl;
     result = Napi::String::New(env, layout_name);
   } else {
     // X11
