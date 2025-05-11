@@ -99,10 +99,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(const Napi::Callba
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
-return GetCurrentKeyboardLayout(info.Env());
-}
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
+  auto env = info.Env();
   TISInputSourceRef source = TISCopyCurrentKeyboardInputSource();
   CFStringRef sourceId = (CFStringRef) TISGetInputSourceProperty(source, kTISPropertyInputSourceID);
   return Napi::String::New(env, [(NSString *)sourceId UTF8String]);

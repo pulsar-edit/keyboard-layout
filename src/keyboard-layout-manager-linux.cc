@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <optional>
 
+#ifdef HAS_WAYLAND
 // Enumerates the various modifiers on this keyboard and tests which one brings
 // us to Level 3. This correlates to what we expect from the AltGr key.
 static std::optional<size_t> IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
@@ -249,54 +250,6 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
   }
 }
 
-// Napi::Value CharacterForNativeCodeWayland(Napi::Env env,
-//                                           xkb_context *xkbContext,
-//                                           xkb_keymap *xkbKeymap,
-//                                           xkb_state *xkbState,
-//                                           uint32_t xkbKeycode, uint32_t state) {
-//   if (!xkbContext || !xkbKeymap || !xkbState) {
-//     return env.Null();
-//   }
-//
-//   xkb_state_update_mask(xkbState, 0, 0, 0, 0, 0, 0);
-//
-//   xkb_mod_mask_t mod_mask = 0;
-//
-//   // Map standard modifiers
-//   struct {
-//     uint32_t x11_mask;
-//     const char *xkb_name;
-//   } modifiers[] = {{ShiftMask, XKB_MOD_NAME_SHIFT},
-//                    {LockMask, XKB_MOD_NAME_CAPS},
-//                    {ControlMask, XKB_MOD_NAME_CTRL},
-//                    {Mod1Mask, XKB_MOD_NAME_ALT},
-//                    // Mod5Mask is often ISO_Level3_Shift (AltGr)
-//                    {Mod5Mask, "iso_level3_shift"}};
-//
-//   for (const auto &mod : modifiers) {
-//     if (state & mod.x11_mask) {
-//       xkb_mod_index_t mod_idx =
-//           xkb_keymap_mod_get_index(xkbKeymap, mod.xkb_name);
-//       if (mod_idx != XKB_MOD_INVALID) {
-//         mod_mask |= (1 << mod_idx);
-//       }
-//     }
-//   }
-//
-//   xkb_state_update_mask(xkbState, mod_mask, 0, 0, 0, 0, 0);
-//
-//   xkb_keysym_t keysym = xkb_state_key_get_one_sym(xkbState, xkbKeycode);
-//
-//   char buffer[8] = {0};
-//   int length = xkb_keysym_to_utf8(keysym, buffer, sizeof(buffer));
-//
-//   if (length > 0 && !std::iscntrl(buffer[0])) {
-//     return Napi::String::New(env, std::string(buffer, length));
-//   } else {
-//     return env.Null();
-//   }
-// }
-
 // Given a Wayland context, a keycode, and a modifier mask, return the
 // character that would be produced by that keycode.
 static char *get_key_char(WaylandKeymapContext *ctx, uint32_t keycode,
@@ -416,6 +369,7 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
   }
 }
 
+#endif
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
   auto env = info.Env();
