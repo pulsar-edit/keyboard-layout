@@ -1,23 +1,15 @@
 # keyboard-layout
-[![CI](https://github.com/atom/keyboard-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/atom/keyboard-layout/actions/workflows/ci.yml)
 
 Read and observe the current keyboard layout.
 
-To get the current keyboard layout, call `getCurrentKeyboardLayout`. It returns
-the string identifier of the current layout based on the value returned by the
-operating system.
+To get the current keyboard layout, call `getCurrentKeyboardLayout`. It returns the string identifier of the current layout based on the value returned by the operating system.
 
 ```js
 const KeyboardLayout = require('keyboard-layout')
 KeyboardLayout.getCurrentKeyboardLayout() // => "com.apple.keylayout.Dvorak"
 ```
 
-If you want to watch for layout changes, use `onDidChangeCurrentKeyboardLayout`
-or `observeCurrentKeyboardLayout`. They work the same, except
-`observeCurrentKeyboardLayout` invokes the given callback immediately with the
-current layout value and then again next time it changes, whereas
-`onDidChangeCurrentKeyboardLayout` only invokes the callback on the next
-change.
+If you want to watch for layout changes, use `onDidChangeCurrentKeyboardLayout` or `observeCurrentKeyboardLayout`. They work the same, except `observeCurrentKeyboardLayout` invokes the given callback immediately with the current layout value and then again next time it changes, whereas `onDidChangeCurrentKeyboardLayout` only invokes the callback on the next change.
 
 ```js
 const KeyboardLayout = require('keyboard-layout')
@@ -25,9 +17,7 @@ subscription = KeyboardLayout.observeCurrentKeyboardLayout((layout) => console.l
 subscription.dispose() // to unsubscribe later
 ```
 
-To return characters for various modifier states based on a DOM 3
-`KeyboardEvent.code` value and the current system keyboard layout, use
-`getCurrentKeymap()`:
+To return characters for various modifier states based on a DOM 3 `KeyboardEvent.code` value and the current system keyboard layout, use `getCurrentKeymap()`:
 
 ```js
 const KeyboardLayout = require('keyboard-layout')
@@ -46,6 +36,10 @@ On a US layout, this returns:
 
 ## Caveats
 
+### All platforms
+
+* Having an active layout change listener (via `onDidChangeCurrentKeyboardLayout` or `observeCurrentKeyboardLayout`) will not prevent the process from exiting.
+
 ### Linux
 
 On Linux, there is minimal X11 support and somewhat more comprehensive Wayland support.
@@ -56,7 +50,7 @@ On Linux, there is minimal X11 support and somewhat more comprehensive Wayland s
 
 #### X11
 
-* `observeCurrentKeyboardLayout` is a no-op; we do not receive notifications when the keyboard layout changes. If you want to detect if the keyboard layout has changed, you must poll periodically.
+* `onDidChangeCurrentKeyboardLayout` and `observeCurrentKeyboardLayout` are no-ops; we do not receive notifications when the keyboard layout changes. If you want to detect if the keyboard layout has changed, you must poll periodically.
 * `getCurrentKeymap` will return objects with only two properties: `unmodified` and `withShift`. Information is not available about which characters would be produced if `AltGr` or `AltGr+Shift` were pressed.
 
 #### Wayland
