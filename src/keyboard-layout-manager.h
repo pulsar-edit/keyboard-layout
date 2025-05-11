@@ -31,7 +31,6 @@ if (!(cond)) {                                                 \
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 
-// Add this struct definition outside your class
 typedef struct {
     struct wl_display *display;
     struct wl_registry *registry;
