@@ -681,7 +681,7 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
     // Now read events (shouldn't block since we've been notified data is
     // available)
     if (wl_display_read_events(instance->waylandContext->display) < 0) {
-      std::cout << "ERROR Reading events…" << strerr(errno) << std::endl;
+      std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
       return;
     }
     // Dispatch the events we just read
