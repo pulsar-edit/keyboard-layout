@@ -52,7 +52,13 @@ void KeyboardLayoutManager::ProcessCallback(
   auto that = env.GetInstanceData<KeyboardLayoutManager>();
   auto current = that->GetCurrentKeyboardLayout(env);
 
-  callback.Call({current});
+  Napi::Object global = env.Global();
+  // Create args array
+  std::vector<napi_value> args = {current};
+
+  // Call with explicit this
+  callback.Call(global, args);
+  // callback.Call({current});
 }
 
 // Runs on a background thread.
