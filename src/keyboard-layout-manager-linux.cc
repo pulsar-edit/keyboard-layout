@@ -249,53 +249,53 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
   }
 }
 
-Napi::Value CharacterForNativeCodeWayland(Napi::Env env,
-                                          xkb_context *xkbContext,
-                                          xkb_keymap *xkbKeymap,
-                                          xkb_state *xkbState,
-                                          uint32_t xkbKeycode, uint32_t state) {
-  if (!xkbContext || !xkbKeymap || !xkbState) {
-    return env.Null();
-  }
-
-  xkb_state_update_mask(xkbState, 0, 0, 0, 0, 0, 0);
-
-  xkb_mod_mask_t mod_mask = 0;
-
-  // Map standard modifiers
-  struct {
-    uint32_t x11_mask;
-    const char *xkb_name;
-  } modifiers[] = {{ShiftMask, XKB_MOD_NAME_SHIFT},
-                   {LockMask, XKB_MOD_NAME_CAPS},
-                   {ControlMask, XKB_MOD_NAME_CTRL},
-                   {Mod1Mask, XKB_MOD_NAME_ALT},
-                   // Mod5Mask is often ISO_Level3_Shift (AltGr)
-                   {Mod5Mask, "iso_level3_shift"}};
-
-  for (const auto &mod : modifiers) {
-    if (state & mod.x11_mask) {
-      xkb_mod_index_t mod_idx =
-          xkb_keymap_mod_get_index(xkbKeymap, mod.xkb_name);
-      if (mod_idx != XKB_MOD_INVALID) {
-        mod_mask |= (1 << mod_idx);
-      }
-    }
-  }
-
-  xkb_state_update_mask(xkbState, mod_mask, 0, 0, 0, 0, 0);
-
-  xkb_keysym_t keysym = xkb_state_key_get_one_sym(xkbState, xkbKeycode);
-
-  char buffer[8] = {0};
-  int length = xkb_keysym_to_utf8(keysym, buffer, sizeof(buffer));
-
-  if (length > 0 && !std::iscntrl(buffer[0])) {
-    return Napi::String::New(env, std::string(buffer, length));
-  } else {
-    return env.Null();
-  }
-}
+// Napi::Value CharacterForNativeCodeWayland(Napi::Env env,
+//                                           xkb_context *xkbContext,
+//                                           xkb_keymap *xkbKeymap,
+//                                           xkb_state *xkbState,
+//                                           uint32_t xkbKeycode, uint32_t state) {
+//   if (!xkbContext || !xkbKeymap || !xkbState) {
+//     return env.Null();
+//   }
+//
+//   xkb_state_update_mask(xkbState, 0, 0, 0, 0, 0, 0);
+//
+//   xkb_mod_mask_t mod_mask = 0;
+//
+//   // Map standard modifiers
+//   struct {
+//     uint32_t x11_mask;
+//     const char *xkb_name;
+//   } modifiers[] = {{ShiftMask, XKB_MOD_NAME_SHIFT},
+//                    {LockMask, XKB_MOD_NAME_CAPS},
+//                    {ControlMask, XKB_MOD_NAME_CTRL},
+//                    {Mod1Mask, XKB_MOD_NAME_ALT},
+//                    // Mod5Mask is often ISO_Level3_Shift (AltGr)
+//                    {Mod5Mask, "iso_level3_shift"}};
+//
+//   for (const auto &mod : modifiers) {
+//     if (state & mod.x11_mask) {
+//       xkb_mod_index_t mod_idx =
+//           xkb_keymap_mod_get_index(xkbKeymap, mod.xkb_name);
+//       if (mod_idx != XKB_MOD_INVALID) {
+//         mod_mask |= (1 << mod_idx);
+//       }
+//     }
+//   }
+//
+//   xkb_state_update_mask(xkbState, mod_mask, 0, 0, 0, 0, 0);
+//
+//   xkb_keysym_t keysym = xkb_state_key_get_one_sym(xkbState, xkbKeycode);
+//
+//   char buffer[8] = {0};
+//   int length = xkb_keysym_to_utf8(keysym, buffer, sizeof(buffer));
+//
+//   if (length > 0 && !std::iscntrl(buffer[0])) {
+//     return Napi::String::New(env, std::string(buffer, length));
+//   } else {
+//     return env.Null();
+//   }
+// }
 
 // Given a Wayland context, a keycode, and a modifier mask, return the
 // character that would be produced by that keycode.
@@ -318,7 +318,7 @@ static char *get_key_char(WaylandKeymapContext *ctx, uint32_t keycode,
   // Allocate memory for the result.
   char *result = new char[32];
 
-  // Try to get a UTF-8 representation
+  // Try to get a UTF-8 representation.
   int len = xkb_keysym_to_utf8(keysym, result, 32);
 
   if (!result) {
@@ -371,28 +371,38 @@ void KeyboardLayoutManager::SetupWaylandPolling() {
 
 void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
                                            int events) {
+#ifdef DEBUG
   std::cout << "OnWaylandEvent!" << std::endl;
+#endif
   KeyboardLayoutManager *instance =
       static_cast<KeyboardLayoutManager *>(handle->data);
   if (status < 0) {
     // Error occurred
+#ifdef DEBUG
     std::cout << "Error! " << status << std::endl;
+#endif
     return;
   }
 
   if (events & UV_READABLE) {
+#ifdef DEBUG
     std::cout << "Dispatching pending events…" << std::endl;
+#endif
     while (wl_display_prepare_read(instance->waylandContext->display) != 0) {
       wl_display_dispatch_pending(instance->waylandContext->display);
     }
     // Now read events (shouldn't block since we've been notified data is
     // available)
     if (wl_display_read_events(instance->waylandContext->display) < 0) {
-      std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
+#ifdef DEBUG
+    std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
+#endif
       return;
     }
     // Dispatch the events we just read
+#ifdef DEBUG
     std::cout << "Dispatching pending events…" << std::endl;
+#endif
     wl_display_dispatch_pending(instance->waylandContext->display);
   }
 }
