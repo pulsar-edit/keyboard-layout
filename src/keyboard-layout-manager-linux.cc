@@ -331,16 +331,11 @@ void KeyboardLayoutManager::PlatformTeardown() {
 
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {}
 
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
-  Napi::HandleScope scope(env);
-  Napi::Value result;
-
-  return Napi::String::New(env, "test_layout_hardcoded_awesome");
-
+const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap ||
         !waylandContext->xkb_state) {
-      return env.Null();
+      return "";
     }
 
     // Based on lots of experimentation with Gnome/Wayland, the layout at index
@@ -350,7 +345,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
 
     std::cout << "Current layout: " << layout_name << std::endl;
     currentLayout = layout_name;
-    result = Napi::String::New(env, layout_name);
+    result = layout_name;
+    // result = Napi::String::New(env, layout_name);
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
@@ -359,20 +355,30 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
       XkbStateRec xkbState;
       XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
       if (vdr.variant) {
-        result = Napi::String::New(
-            env, std::string(vdr.layout) + "," + std::string(vdr.variant) +
-                     " [" + std::to_string(xkbState.group) + "]");
+        result = (std::string(vdr.layout) + "," + std::string(vdr.variant) +
+                 " [" + std::to_string(xkbState.group) + "]");
+        // result = Napi::String::New(
+        //     env, );
       } else {
-        result =
-            Napi::String::New(env, std::string(vdr.layout) + " [" +
-                                       std::to_string(xkbState.group) + "]");
+        result = std::string(vdr.layout) + " [" +
+                                   std::to_string(xkbState.group) + "]";
+            // Napi::String::New(env, );
       }
     } else {
-      result = env.Null();
+      result = "";
     }
   }
-
   return result;
+}
+
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
+  Napi::HandleScope scope(env);
+
+  const char* rawResult = GetCurrentKeyboardLayout();
+  if (rawResult == "") {
+    return env.Null();
+  }
+  return Napi::String::New(env, rawResult);
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
