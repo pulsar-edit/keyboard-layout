@@ -21,7 +21,6 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 
   auto fn = info[0].As<Napi::Function>();
   callback = Napi::Persistent(fn);
-  std::cout << "Declaring tsfn!" << std::endl;
   tsfn = Napi::ThreadSafeFunction::New(
     env,
     callback.Value(),
@@ -61,8 +60,8 @@ void KeyboardLayoutManager::ProcessCallback(
   }
 
   Napi::Object global = env.Global();
-
-  callback.Call({current});
+  callback.MakeCallback(global, {current});
+  // callback.Call({current});
 }
 
 // Runs on a background thread.
