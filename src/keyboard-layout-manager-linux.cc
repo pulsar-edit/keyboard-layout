@@ -12,6 +12,28 @@
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
 
+static void PrintModifierInfo(WaylandKeymapContext *ctx,
+                              xkb_mod_index_t mod_idx) {
+  const char* mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
+  std::cout << "Mod name: " << mod_name << std::endl;
+
+  // List which keys are mapped to this modifier
+  for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
+    // Skip if this keycode isn't valid
+    if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
+      continue;
+    }
+
+    // Check if this key affects our modifier
+    if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
+        xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
+      const char *key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
+      std::cout << " Key " << key_name << " affects this modifier!"
+                << std::endl;
+    }
+  }
+}
+
 // More robust detection combining multiple checks
 static int detect_display_server() {
   // Method 1: XDG_SESSION_TYPE - Can be most reliable when set correctly
@@ -88,6 +110,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   char *keymap_string = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  std::cout << "KEYMAP STRING:" << std::endl << keymap_string << std::endl;
   if (keymap_string == MAP_FAILED) {
     close(fd);
     return;
@@ -178,27 +201,6 @@ static void keyboard_repeat_info(void *data, struct wl_keyboard *keyboard,
 static const struct wl_keyboard_listener keyboard_listener = {
     keyboard_keymap, keyboard_enter,     keyboard_leave,
     keyboard_key,    keyboard_modifiers, keyboard_repeat_info};
-
-static void PrintModifierInfo(WaylandKeymapContext* ctx, xkb_mod_index_t mod_idx) {
-  const char mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
-  std::cout << "Mod name: " << mod_name << std::endl;
-
-  // List which keys are mapped to this modifier
-  for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
-      // Skip if this keycode isn't valid
-      if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
-          continue;
-      }
-
-      // Check if this key affects our modifier
-      if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
-          xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
-          const char* key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
-          std::cout << " Key " << key_name << " affects this modifier!" << std::endl;
-      }
-  }
-
-}
 
 static void FailOnWaylandSetup(Napi::Env env) {
   Napi::Error::New(env, "Failed to connect to Wayland display")
