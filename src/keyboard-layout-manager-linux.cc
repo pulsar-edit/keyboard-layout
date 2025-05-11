@@ -116,9 +116,19 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   // Try to find AltGr (ISO Level3 Shift) - this varies by layout
-  const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch",
-                                "AltGr", "Alt"};
+  // const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch",
+  //                               "AltGr", "Alt"};
 
+  const char *alt_gr_names[] = {
+      "ISO_Level3_Shift", // Most common for European layouts
+      "Mode_switch",      // Often used as an alias
+      "AltGr",            // Explicit name on some layouts
+      "Mod5",             // Often mapped to AltGr
+      "Mod3",             // Sometimes used for AltGr
+      "LevelThree",       // Another name used in some layouts
+      "Right Alt"         // Sometimes used explicitly
+  };
+  
   size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
   for (size_t i = 0; i < alt_gr_length; i++) {
     xkb_mod_index_t idx =
