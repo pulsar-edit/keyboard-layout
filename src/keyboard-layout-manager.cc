@@ -19,15 +19,32 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
     env
   );
 
+  // In constructor
   auto fn = info[0].As<Napi::Function>();
   callback = Napi::Persistent(fn);
+
+  // Log debug info
+  fprintf(stderr, "Creating ThreadSafeFunction. Callback is %s\n",
+          callback.IsEmpty() ? "empty" : "valid");
+
+  // Create the ThreadSafeFunction with more explicit parameters
   tsfn = Napi::ThreadSafeFunction::New(
-    env,
-    callback.Value(),
-    "keyboard-layout-listener",
-    0,
-    1
+    env,                          // environment
+    callback.Value(),             // js_callback
+    "keyboard-layout-listener",   // resource_name
+    0,                            // max_queue_size
+    1                             // initial_thread_count
   );
+
+  // auto fn = info[0].As<Napi::Function>();
+  // callback = Napi::Persistent(fn);
+  // tsfn = Napi::ThreadSafeFunction::New(
+  //   env,
+  //   callback.Value(),
+  //   "keyboard-layout-listener",
+  //   0,
+  //   1
+  // );
 
   callback.Unref();
   tsfn.Unref(env);
@@ -94,6 +111,23 @@ static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback) {
 
 // Runs on a background thread.
 void KeyboardLayoutManager::OnNotificationReceived() {
+  // Create data - even though we're not using it, it helps with debugging
+  const char* marker = "LAYOUT_CHANGE_EVENT";
+
+  // More explicit call
+  napi_status status = tsfn.NonBlockingCall(
+    const_cast<char*>(marker),  // "data" to pass (just a marker)
+    [](Napi::Env env, Napi::Function jsCallback, char* data) {
+      // Extra debug info
+      fprintf(stderr, "ThreadSafeFunction callback executing. Data marker: %s\n", data);
+
+      // Create a simple hard-coded value
+      Napi::String layout = Napi::String::New(env, "test_nonblocking_call");
+
+      // Call with this value
+      jsCallback.Call({layout});
+    }
+  );
   // We don't need to send any arguments; we just need to signal the main
   // thread.
   // tsfn.BlockingCall(
@@ -107,7 +141,7 @@ void KeyboardLayoutManager::OnNotificationReceived() {
   //         jsCallback.Call({arg});
   //       }
   //     });
-  tsfn.BlockingCall(LayoutChangeCallback);
+  // tsfn.BlockingCall(LayoutChangeCallback);
 }
 
 void KeyboardLayoutManager::Cleanup() {
