@@ -43,6 +43,46 @@ static int detect_display_server() {
   return -1;
 }
 
+static IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
+  struct xkb_state *state = xkb_state_new(ctx->keymap);
+  for (xkb_mod_index_t mod = 0; mod < xkb_keymap_num_mods(ctx->xkb_keymap); mod++) {
+    xkb_mod_mask_t mask = 1 << mod;
+    const char *mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod);
+    xkb_state_update_mask(state, mask, 0, 0, 0, 0, 0);
+
+    bool activates_level3 = false;
+    int level3_keys_count = 0;
+
+    for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
+      if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
+        continue;
+      }
+
+      xkb_layout_index_t group = 0;
+      xkb_level_index_t level = xkb_state_key_get_level(state, keycode, group);
+
+      if (level == 2) {
+        const char *key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
+        level3_keys_count++;
+
+        if (level3_keys_count >= 3) {
+          activates_level3 = true;
+          break;
+        }
+      }
+    }
+
+    if (activates_level3) {
+      std::cout << "Found Level3 modifier: " << (mod_name ? mod_name : "unnamed") << " " << mod << std::endl;
+      xkb_state_unref(state);
+      return mod;
+    }
+  }
+
+  xkb_state_unref(state);
+  return 0;
+}
+
 // REGISTRY LISTENER
 // =================
 
@@ -121,24 +161,30 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   // const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch",
   //                               "AltGr", "Alt"};
 
-  const char *alt_gr_names[] = {
-      "ISO_Level3_Shift", // Most common for European layouts
-      "Mode_switch",      // Often used as an alias
-      "AltGr",            // Explicit name on some layouts
-      "Mod5",             // Often mapped to AltGr
-      "Mod3",             // Sometimes used for AltGr
-      "LevelThree",       // Another name used in some layouts
-      "Right Alt"         // Sometimes used explicitly
-  };
+  size_t alt_gr_index = IndexOfLevel3Modifier(ctx);
 
-  size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
-  for (size_t i = 0; i < alt_gr_length; i++) {
-    xkb_mod_index_t idx =
-        xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
-    if (idx != XKB_MOD_INVALID) {
-      std::cout << "Using AltGr name: " << alt_gr_names[i] << std::endl;
-      ctx->alt_gr_mask = 1 << idx;
-      break;
+  if (alt_gr_index > 0) {
+    ctx_alt_gr_mask = 1 << alt_gr_index;
+  } else {
+    const char *alt_gr_names[] = {
+        "ISO_Level3_Shift", // Most common for European layouts
+        "Mode_switch",      // Often used as an alias
+        "AltGr",            // Explicit name on some layouts
+        "Mod5",             // Often mapped to AltGr
+        "Mod3",             // Sometimes used for AltGr
+        "LevelThree",       // Another name used in some layouts
+        "Right Alt"         // Sometimes used explicitly
+    };
+
+    size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
+    for (size_t i = 0; i < alt_gr_length; i++) {
+      xkb_mod_index_t idx =
+          xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
+      if (idx != XKB_MOD_INVALID) {
+        std::cout << "Using AltGr name: " << alt_gr_names[i] << std::endl;
+        ctx->alt_gr_mask = 1 << idx;
+        break;
+      }
     }
   }
 
