@@ -30,6 +30,7 @@ if (!(cond)) {                                                 \
 #include <X11/Xlib.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
+#include <string>
 
 typedef struct {
     struct wl_display *display;
@@ -62,7 +63,9 @@ public:
 #endif
 
 private:
-  const char* GetCurrentKeyboardLayout();
+#if defined(__linux__)
+  std::string GetCurrentKeyboardLayout();
+#endif
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
   Napi::Value GetCurrentKeyboardLanguage(const Napi::CallbackInfo& info);
   Napi::Value GetInstalledKeyboardLanguages(const Napi::CallbackInfo& info);
