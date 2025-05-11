@@ -116,8 +116,8 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   // Try to find AltGr (ISO Level3 Shift) - this varies by layout
-  const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch", "Alt",
-                                "AltGr"};
+  const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch",
+                                "AltGr", "Alt"};
 
   size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
   for (size_t i = 0; i < alt_gr_length; i++) {
