@@ -71,12 +71,9 @@ private:
   Napi::Value GetInstalledKeyboardLanguages(const Napi::CallbackInfo& info);
   Napi::Value GetCurrentKeymap(const Napi::CallbackInfo& info);
 
-  Napi::Value GetCurrentKeyboardLayout(Napi::Env env);
-
   void PlatformSetup(const Napi::CallbackInfo& info);
   void PlatformTeardown();
 
-  void HandleKeyboardLayoutChanged();
   static void ProcessCallback(Napi::Env env, Napi::Function callback);
   void Cleanup();
 

@@ -235,60 +235,59 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
   auto env = info.Env();
 
-  // isWayland = detect_display_server() == 1;
+  // Assume we're on Wayland to start out.
   isWayland = true;
 
-  if (isWayland) {
-    waylandContext = new WaylandKeymapContext();
-    memset(waylandContext, 0, sizeof(WaylandKeymapContext));
+  waylandContext = new WaylandKeymapContext();
+  memset(waylandContext, 0, sizeof(WaylandKeymapContext));
 
-    waylandContext->display = wl_display_connect(NULL);
-    if (!waylandContext->display) {
-      CleanupWaylandContext(waylandContext);
-      goto x11;
-    }
-
-    waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (!waylandContext->xkb_context) {
-      CleanupWaylandContext(waylandContext);
-      goto x11;
-    }
-
-    waylandContext->registry = wl_display_get_registry(waylandContext->display);
-    std::cout << "Listener!" << std::endl;
-    wl_registry_add_listener(waylandContext->registry, &registry_listener,
-                             this);
-
-    // Process registry events.
-    wl_display_roundtrip(waylandContext->display);
-
-    std::cout << "Got this far 1!" << std::endl;
-
-    // If a seat was found, add a keyboard listener.
-    if (waylandContext->keyboard) {
-      wl_keyboard_add_listener(waylandContext->keyboard, &keyboard_listener,
-                               this);
-    } else {
-      std::cout << "Oof 3!" << std::endl;
-      CleanupWaylandContext(waylandContext);
-      FailOnWaylandSetup(env);
-      return;
-    }
-
-    std::cout << "Got this far 2!" << std::endl;
-    // Wait for the keymap to be received.
-    while (!waylandContext->keymap_received) {
-      if (wl_display_dispatch(waylandContext->display) < 0) {
-        CleanupWaylandContext(waylandContext);
-        FailOnWaylandSetup(env);
-        return;
-      }
-    }
-
-    SetupWaylandPolling();
-    // We're good. We can exit.
-    return;
+  waylandContext->display = wl_display_connect(NULL);
+  if (!waylandContext->display) {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
   }
+
+  waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (!waylandContext->xkb_context) {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
+  }
+
+  // If we can get as far as creating a Wayland display and context, it is
+  // assumed that we are on Wayland and not X11. But since any failure further
+  // along the Wayland path of this function is fatal, there's no reason not to
+  // at least _try_ to fallback to X11.
+
+  waylandContext->registry = wl_display_get_registry(waylandContext->display);
+  std::cout << "Listener!" << std::endl;
+  wl_registry_add_listener(waylandContext->registry, &registry_listener,
+                           this);
+
+  // Process registry events.
+  wl_display_roundtrip(waylandContext->display);
+
+  // If a seat was found, add a keyboard listener.
+  if (waylandContext->keyboard) {
+    wl_keyboard_add_listener(waylandContext->keyboard, &keyboard_listener,
+                             this);
+  } else {
+    CleanupWaylandContext(waylandContext);
+    goto x11;
+  }
+
+  // Wait for the keymap to be received.
+  while (!waylandContext->keymap_received) {
+    if (wl_display_dispatch(waylandContext->display) < 0) {
+      CleanupWaylandContext(waylandContext);
+      goto x11;
+    }
+  }
+
+  // Once we've gotten this far, we have everything we need to inspect keyboard
+  // behavior. Now we'll set up polling on the event loop so we can find out
+  // when the keyboard layout changes.
+  SetupWaylandPolling();
+  return;
 
 x11:
   isWayland = false;
@@ -332,9 +331,9 @@ void KeyboardLayoutManager::PlatformTeardown() {
   callback.Reset();
 };
 
-void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {}
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
+    const Napi::CallbackInfo &info) {
+  auto env = info.Env();
   Napi::HandleScope scope(env);
   Napi::Value result;
 
@@ -345,11 +344,16 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
     }
 
     // Based on lots of experimentation with Gnome/Wayland, the layout at index
-    // 0 will always be the active layout.
+    // 0 will always be the active layout. This may or may not be true for
+    // other Wayland server implementations, but we'll go with it for now —
+    // because if it isn't true, we'd be hard-pressed to discover that
+    // information any other way.
     const char *layout_name =
         xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
 
+#ifdef DEBUG
     std::cout << "Current layout: " << layout_name << std::endl;
+#endif
     result = Napi::String::New(env, layout_name);
   } else {
     // X11
@@ -372,12 +376,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
     }
   }
   return result;
-}
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
-    const Napi::CallbackInfo &info) {
-  auto env = info.Env();
-  return GetCurrentKeyboardLayout(env);
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(

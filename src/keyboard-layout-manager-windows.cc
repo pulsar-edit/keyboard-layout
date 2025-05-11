@@ -49,10 +49,6 @@ HKL GetForegroundWindowHKL() {
   return GetKeyboardLayout(dwThreadId);
 }
 
-void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
-  // no-op
-}
-
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
   return GetCurrentKeyboardLayout(info.Env());
 }

@@ -46,10 +46,6 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
   );
 }
 
-void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {
-  // no-op
-}
-
 Napi::Value KeyboardLayoutManager::GetInstalledKeyboardLanguages(const Napi::CallbackInfo& info) {
   auto env = info.Env();
   Napi::HandleScope scope(env);
@@ -103,7 +99,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLanguage(const Napi::Callba
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
-  return GetCurrentKeyboardLayout(info.Env());
+return GetCurrentKeyboardLayout(info.Env());
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
