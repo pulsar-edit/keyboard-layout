@@ -223,7 +223,6 @@ static void keyboard_repeat_info(void *data, struct wl_keyboard *keyboard,
   // Not used
 }
 
-
 static const struct wl_keyboard_listener keyboard_listener = {
     keyboard_keymap, keyboard_enter,     keyboard_leave,
     keyboard_key,    keyboard_modifiers, keyboard_repeat_info};
@@ -249,7 +248,7 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
 
 // Given a Wayland context, a keycode, and a modifier mask, return the
 // character that would be produced by that keycode.
-static char *get_key_char(WaylandKeymapContext *ctx, uint32_t keycode,
+static char *GetCharForKeycode(WaylandKeymapContext *ctx, uint32_t keycode,
                           xkb_mod_mask_t modifiers) {
   // At first I thought we needed to offset this by 8, but it already seems
   // correct as-is.
@@ -293,7 +292,7 @@ static Napi::Value WaylandCharacterForCode(Napi::Env env,
                                            WaylandKeymapContext *ctx,
                                            uint32_t keycode,
                                            xkb_mod_mask_t modifiers) {
-  char *result = get_key_char(ctx, keycode, modifiers);
+  char *result = GetCharForKeycode(ctx, keycode, modifiers);
   if (result) {
     auto wrappedResult = Napi::String::New(env, result);
     delete[] result;
