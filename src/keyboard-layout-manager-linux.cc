@@ -335,8 +335,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   Napi::HandleScope scope(env);
   Napi::Value result;
 
-  return Napi::String::New(env, "test_layout_hardcoded");
-
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap ||
         !waylandContext->xkb_state) {
