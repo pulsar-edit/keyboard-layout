@@ -59,8 +59,20 @@ void KeyboardLayoutManager::ProcessCallback(
     std::cout << "Sanity check: is NOT a string!";
   }
 
-  Napi::Object global = env.Global();
-  callback.MakeCallback(global, {current.As<Napi::String>()});
+  // Create arguments array with the layout
+  std::vector<napi_value> args = { current };
+
+  // Call JS callback with explicit this and args
+  napi_value global;
+  napi_get_global(env, &global);
+
+  napi_value result;
+  napi_call_function(env, global, callback, 1, args.data(), &result);
+
+  std::cout << "Weird Result: " << result << std::endl;
+
+  // Napi::Object global = env.Global();
+  // callback.MakeCallback(global, {current.As<Napi::String>()});
   // callback.Call({current});
 }
 
