@@ -29,11 +29,16 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 
   // Create the ThreadSafeFunction with more explicit parameters
   tsfn = Napi::ThreadSafeFunction::New(
-    env,                          // environment
-    callback.Value(),             // js_callback
-    "keyboard-layout-listener",   // resource_name
-    0,                            // max_queue_size
-    1                             // initial_thread_count
+    env,                        // environment
+    callback.Value(),           // js_callback
+    "keyboard-layout-listener", // resource_name
+    0,                          // max_queue_size
+    1,                          // initial_thread_count
+    this,
+    [](Napi::Env, void *) {     // finalize_cb
+                                // No-op finalize callback
+    },
+    this
   );
 
   // auto fn = info[0].As<Napi::Function>();
@@ -48,8 +53,6 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 
   callback.Unref();
   tsfn.Unref(env);
-
-  std::cout << "Unreffed the tsfn!" << std::endl;
 
   env.SetInstanceData<KeyboardLayoutManager>(this);
 
@@ -110,21 +113,22 @@ static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback) {
 
 
 void KeyboardLayoutManager::OnNotificationReceived() {
-  const char* marker = "LAYOUT_CHANGE_EVENT";
 
   napi_status status = tsfn.NonBlockingCall(
-    const_cast<char*>(marker),
-    [](Napi::Env env, Napi::Function jsCallback, char* data) {
+    this,
+    [](Napi::Env env, Napi::Function jsCallback, KeyboardLayoutManager* that) {
       fprintf(stderr, "ThreadSafeFunction callback executing.\n");
 
       // Try to get the instance data
-      auto that = env.GetInstanceData<KeyboardLayoutManager>();
+      // auto that = env.GetInstanceData<KeyboardLayoutManager>();
       if (that) {
         fprintf(stderr, "Successfully retrieved instance data\n");
 
+        Napi::Value current = that->GetCurrentKeyboardLayout(env);
+
         // Still use a hard-coded string for now
-        Napi::String layout = Napi::String::New(env, "test_with_instance_data");
-        jsCallback.Call({layout});
+        // Napi::String layout = Napi::String::New(env, "test_with_instance_data");
+        jsCallback.Call({current});
       } else {
         fprintf(stderr, "Failed to get instance data\n");
 
