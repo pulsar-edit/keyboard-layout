@@ -37,8 +37,8 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
     this,
     [](Napi::Env, void* finalizeData) {     // finalize_cb
                                 // No-op finalize callback
-    },
-    this
+    }
+    // nullptr
   );
 
   // auto fn = info[0].As<Napi::Function>();
@@ -115,8 +115,7 @@ static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback) {
 void KeyboardLayoutManager::OnNotificationReceived() {
 
   napi_status status = tsfn.NonBlockingCall(
-    this,
-    [](Napi::Env env, Napi::Function jsCallback, KeyboardLayoutManager* that) {
+    [this](Napi::Env env, Napi::Function jsCallback, KeyboardLayoutManager* that) {
       fprintf(stderr, "ThreadSafeFunction callback executing.\n");
 
       // Try to get the instance data
