@@ -54,13 +54,13 @@ void KeyboardLayoutManager::ProcessCallback(
 
   Napi::Object global = env.Global();
 
-  // Debug - check if current is valid
-  fprintf(stderr, "Current layout value is %s\n",
-          current.IsUndefined() ? "undefined" :
-          (current.IsNull() ? "null" : "defined"));
-
   // Create args array
   std::vector<napi_value> args = {current};
+
+  std::cout << "WAT? "
+            << (current.IsUndefined() ? "undefined"
+                                      : (current.IsNull() ? "null" : "defined"))
+            << std::endl;
 
   // Call with explicit this
   callback.Call(args);
