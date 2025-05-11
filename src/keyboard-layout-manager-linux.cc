@@ -168,7 +168,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   ctx->keymap_received = true;
-  that->ProcessCallbackWrapper();
+  that->OnNotificationReceived();
 }
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
