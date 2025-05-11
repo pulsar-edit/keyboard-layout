@@ -228,11 +228,6 @@ static const struct wl_keyboard_listener keyboard_listener = {
     keyboard_keymap, keyboard_enter,     keyboard_leave,
     keyboard_key,    keyboard_modifiers, keyboard_repeat_info};
 
-static void FailOnWaylandSetup(Napi::Env env) {
-  Napi::Error::New(env, "Failed to connect to Wayland display")
-      .ThrowAsJavaScriptException();
-}
-
 static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
   if (ctx->xkb_state)
     xkb_state_unref(ctx->xkb_state);
