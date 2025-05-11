@@ -12,37 +12,8 @@
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
 
-
-// More robust detection combining multiple checks
-static int detect_display_server() {
-  // Method 1: XDG_SESSION_TYPE - Can be most reliable when set correctly
-  const char *session_type = getenv("XDG_SESSION_TYPE");
-  if (session_type != NULL) {
-    if (strcmp(session_type, "wayland") == 0) {
-      return 1; // Wayland
-    } else if (strcmp(session_type, "x11") == 0) {
-      return 0; // X11
-    }
-    // Other values like "tty" could exist
-  }
-
-  // Method 2 & 3: Check for environment variables
-  const char *wayland_display = getenv("WAYLAND_DISPLAY");
-  const char *x_display = getenv("DISPLAY");
-
-  // Both could be set in some edge cases (X on Wayland or Wayland on X)
-  if (wayland_display && strlen(wayland_display) > 0) {
-    if (!(x_display && strlen(x_display) > 0)) {
-      return 1; // Only Wayland is set
-    }
-  } else if (x_display && strlen(x_display) > 0) {
-    return 0; // Only X11 is set
-  }
-
-  // If we get here, situation is ambiguous
-  return -1;
-}
-
+// Enumerates the various modifiers on this keyboard and tests which one brings
+// us to Level 3. This correlates to what we expect from the AltGr key.
 static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
   struct xkb_state *state = xkb_state_new(ctx->xkb_keymap);
   for (xkb_mod_index_t mod = 0; mod < xkb_keymap_num_mods(ctx->xkb_keymap); mod++) {
@@ -73,7 +44,9 @@ static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
     }
 
     if (activates_level3) {
+#ifdef DEBUG
       std::cout << "Found Level3 modifier: " << (mod_name ? mod_name : "unnamed") << " " << mod << std::endl;
+#endif
       xkb_state_unref(state);
       return mod;
     }
@@ -89,9 +62,6 @@ static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
 static void registry_global(void *data, struct wl_registry *registry,
                             uint32_t name, const char *interface,
                             uint32_t version) {
-  // auto env = (static_cast<Napi::Env*>(data));
-  // auto that = env->GetInstanceData<KeyboardLayoutManager>();
-  // auto ctx = that->waylandContext;
   auto that = (static_cast<KeyboardLayoutManager *>(data));
   auto ctx = that->waylandContext;
   if (strcmp(interface, "wl_seat") == 0) {
@@ -129,7 +99,9 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   char *keymap_string = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+#ifdef DEBUG
   std::cout << "KEYMAP STRING:" << std::endl << keymap_string << std::endl;
+#endif
   if (keymap_string == MAP_FAILED) {
     close(fd);
     return;
@@ -157,10 +129,16 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
     ctx->shift_mask = 1 << shift_idx;
   }
 
-  // Try to find AltGr (ISO Level3 Shift) - this varies by layout
-  // const char *alt_gr_names[] = {"ISO_Level3_Shift", "Mode_switch",
-  //                               "AltGr", "Alt"};
-
+  // It's surprisingly hard to find out which modifier key corresponds to
+  // AltGr. In theory, it could be defined by name — or by `ISO_Level3_Shift` —
+  // but in my testing, modifier keys are defined generically (`Mod1`, `Mod2`)
+  // and the connection to `AltGr` or `ISO_Level3_Shift` is done within the
+  // keymap definition itself
+  // (https://github.com/xkbcommon/libxkbcommon/blob/master/doc/keymap-format-text-v1.md).
+  //
+  // We know that `AltGr` is meant to bring us to keyboard level 3, so we'll
+  // try this: loop through the set of modifiers and return the first one that
+  // brings us to Level 3 for three or more separate keycodes.
   size_t alt_gr_index = IndexOfLevel3Modifier(ctx);
 
   if (alt_gr_index > 0) {
@@ -389,7 +367,6 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
     }
   }
 
-  std::cout << "Returning!" << std::endl;
   return result;
 }
 
