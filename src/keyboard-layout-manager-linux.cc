@@ -128,13 +128,14 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
       "LevelThree",       // Another name used in some layouts
       "Right Alt"         // Sometimes used explicitly
   };
-  
+
   size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
   for (size_t i = 0; i < alt_gr_length; i++) {
     xkb_mod_index_t idx =
         xkb_keymap_mod_get_index(ctx->xkb_keymap, alt_gr_names[i]);
     if (idx != XKB_MOD_INVALID) {
       std::cout << "Using AltGr name: " << alt_gr_names[i] << std::endl;
+      PrintModifierInfo(ctx, idx);
       ctx->alt_gr_mask = 1 << idx;
       break;
     }
@@ -173,9 +174,31 @@ static void keyboard_repeat_info(void *data, struct wl_keyboard *keyboard,
   // Not used
 }
 
+
 static const struct wl_keyboard_listener keyboard_listener = {
     keyboard_keymap, keyboard_enter,     keyboard_leave,
     keyboard_key,    keyboard_modifiers, keyboard_repeat_info};
+
+static void PrintModifierInfo(WaylandKeymapContext* ctx, xkb_mod_index_t mod_idx) {
+  const char mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
+  std::cout << "Mod name: " << mod_name << std::endl;
+
+  // List which keys are mapped to this modifier
+  for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
+      // Skip if this keycode isn't valid
+      if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
+          continue;
+      }
+
+      // Check if this key affects our modifier
+      if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
+          xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
+          const char* key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
+          std::cout << " Key " << key_name << " affects this modifier!" << std::endl;
+      }
+  }
+
+}
 
 static void FailOnWaylandSetup(Napi::Env env) {
   Napi::Error::New(env, "Failed to connect to Wayland display")
@@ -665,4 +688,28 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
 
 void KeyboardLayoutManager::ProcessCallbackWrapper() {
   ProcessCallback(_env, callback.Value().As<Napi::Function>());
+}
+
+
+//////
+
+void print_modifier_info(WaylandKeymapContext* ctx, xkb_mod_index_t mod_idx) {
+    const char* mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod_idx);
+    fprintf(stderr, "Modifier %d: %s\n", mod_idx, mod_name ? mod_name : "unnamed");
+
+    // List which keys are mapped to this modifier
+    for (xkb_keycode_t keycode = 8; keycode < 256; keycode++) {
+        // Skip if this keycode isn't valid
+        if (!xkb_keymap_key_get_name(ctx->xkb_keymap, keycode)) {
+            continue;
+        }
+
+        // Check if this key affects our modifier
+        if (xkb_keymap_mod_get_mask(ctx->xkb_keymap, mod_idx) &
+            xkb_keymap_key_get_mods_for_key(ctx->xkb_keymap, keycode)) {
+            const char* key_name = xkb_keymap_key_get_name(ctx->xkb_keymap, keycode);
+            fprintf(stderr, "  Key %d (%s) affects this modifier\n",
+                   keycode, key_name ? key_name : "unnamed");
+        }
+    }
 }
