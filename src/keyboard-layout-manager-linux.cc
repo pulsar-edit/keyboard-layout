@@ -43,8 +43,8 @@ static int detect_display_server() {
   return -1;
 }
 
-static IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
-  struct xkb_state *state = xkb_state_new(ctx->keymap);
+static size_t IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
+  struct xkb_state *state = xkb_state_new(ctx->xkb_keymap);
   for (xkb_mod_index_t mod = 0; mod < xkb_keymap_num_mods(ctx->xkb_keymap); mod++) {
     xkb_mod_mask_t mask = 1 << mod;
     const char *mod_name = xkb_keymap_mod_get_name(ctx->xkb_keymap, mod);
@@ -164,7 +164,7 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   size_t alt_gr_index = IndexOfLevel3Modifier(ctx);
 
   if (alt_gr_index > 0) {
-    ctx_alt_gr_mask = 1 << alt_gr_index;
+    ctx->alt_gr_mask = 1 << alt_gr_index;
   } else {
     const char *alt_gr_names[] = {
         "ISO_Level3_Shift", // Most common for European layouts
