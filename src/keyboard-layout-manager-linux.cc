@@ -5,14 +5,17 @@
 #include <X11/extensions/XKBrules.h>
 #include <cctype>
 #include <cwctype>
-#include <iostream>
 #include <locale.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <optional>
+
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 #ifdef HAS_WAYLAND
+#include <optional>
 // Enumerates the various modifiers on this keyboard and tests which one brings
 // us to Level 3. This correlates to what we expect from the AltGr key.
 static std::optional<size_t> IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {

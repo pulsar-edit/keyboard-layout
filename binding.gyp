@@ -58,6 +58,7 @@
                     "sources": [
                         "src/keyboard-layout-manager-linux.cc",
                     ],
+                    "cflags_cc": ["-std=c++17"],
                     "variables": {
                         "wayland_available%": "<!(pkg-config --exists wayland-client && echo 1 || echo 0)"
                     },
