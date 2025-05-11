@@ -674,11 +674,17 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
   }
 
   if (events & UV_READABLE) {
-    std::cout << "Reading events…" << std::endl;
-    // Read events from the display
-    wl_display_read_events(instance->waylandContext->display);
-
-    // Dispatch pending events
+    std::cout << "Dispatching pending events…" << std::endl;
+    while (wl_display_prepare_read(instance->waylandContext->display) != 0) {
+      wl_display_dispatch_pending(instance->waylandContext->display);
+    }
+    // Now read events (shouldn't block since we've been notified data is
+    // available)
+    if (wl_display_read_events(instance->waylandContext->display) < 0) {
+      std::cout << "ERROR Reading events…" << strerr(errno) << std::endl;
+      return;
+    }
+    // Dispatch the events we just read
     std::cout << "Dispatching pending events…" << std::endl;
     wl_display_dispatch_pending(instance->waylandContext->display);
   }
