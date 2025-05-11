@@ -76,6 +76,22 @@ void KeyboardLayoutManager::ProcessCallback(
   // callback.Call({current});
 }
 
+// Static callback that doesn't rely on GetCurrentKeyboardLayout
+static void LayoutChangeCallback(Napi::Env env, Napi::Function jsCallback, void* /*data*/) {
+  // Create a handle scope for this execution context
+  Napi::HandleScope scope(env);
+
+  // Create a hard-coded string value directly here
+  Napi::String layout = Napi::String::New(env, "test_direct_layout");
+
+  // Log before calling
+  fprintf(stderr, "About to call JS callback with direct layout: %s\n", "test_direct_layout");
+
+  // Call with explicit arguments
+  jsCallback.Call({layout});
+}
+
+
 // Runs on a background thread.
 void KeyboardLayoutManager::OnNotificationReceived() {
   // We don't need to send any arguments; we just need to signal the main
@@ -91,7 +107,7 @@ void KeyboardLayoutManager::OnNotificationReceived() {
   //         jsCallback.Call({arg});
   //       }
   //     });
-  tsfn.BlockingCall(KeyboardLayoutManager::ProcessCallback);
+  tsfn.BlockingCall(LayoutChangeCallback);
 }
 
 void KeyboardLayoutManager::Cleanup() {
