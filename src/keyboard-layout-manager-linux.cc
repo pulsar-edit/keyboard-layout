@@ -331,12 +331,12 @@ void KeyboardLayoutManager::PlatformTeardown() {
 
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {}
 
-const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
-  const char* result;
+std::string KeyboardLayoutManager::GetCurrentKeyboardLayout() {
+  std::string result;
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap ||
         !waylandContext->xkb_state) {
-      return "";
+      return std::string("");
     }
 
     // Based on lots of experimentation with Gnome/Wayland, the layout at index
@@ -345,7 +345,7 @@ const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
         xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
 
     std::cout << "Current layout: " << layout_name << std::endl;
-    result = layout_name;
+    result = std::string(layout_name);
     // result = Napi::String::New(env, layout_name);
   } else {
     // X11
@@ -365,7 +365,7 @@ const char* KeyboardLayoutManager::GetCurrentKeyboardLayout() {
             // Napi::String::New(env, );
       }
     } else {
-      result = "";
+      result = std::string("");
     }
   }
   return result;
@@ -386,13 +386,13 @@ void KeyboardLayoutManager::ProcessCallback(
   Napi::Function callback
 ) {
   auto that = env.GetInstanceData<KeyboardLayoutManager>();
-  const char* rawResult = that->GetCurrentKeyboardLayout();
+  std::string rawResult = that->GetCurrentKeyboardLayout();
 
   Napi::Value result;
-  if (strcmp(rawResult, "") == 0) {
+  if (rawResult == "") {
     result = env.Null();
   } else {
-    result = Napi::String::New(env, rawResult);
+    result = Napi::String::New(env, rawResult.c_str());
   }
   // that->GetCurrentKeyboardLayout(env);
 
