@@ -50,12 +50,8 @@ HKL GetForegroundWindowHKL() {
 }
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(const Napi::CallbackInfo& info) {
-  return GetCurrentKeyboardLayout(info.Env());
-}
-
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   Napi::HandleScope scope(env);
+  auto env = info.Env();
 
   ActivateKeyboardLayout(GetForegroundWindowHKL(), 0);
   char layoutName[KL_NAMELENGTH];
