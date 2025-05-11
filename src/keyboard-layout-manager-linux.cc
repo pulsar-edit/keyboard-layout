@@ -700,6 +700,23 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
   }
 }
 
-void KeyboardLayoutManager::ProcessCallbackWrapper() {
-  ProcessCallback(_env, callback.Value().As<Napi::Function>());
+// Runs on the main thread.
+void KeyboardLayoutManager::ProcessCallback(
+  Napi::Env env,
+  Napi::Function callback
+) {
+  auto that = env.GetInstanceData<KeyboardLayoutManager>();
+  auto current = that->GetCurrentKeyboardLayout(env);
+
+  if (current.IsString()) {
+    Napi::String str = current.As<Napi::String>();
+    std::string value = str.Utf8Value();
+    std::cout << "Sanity check: value is " << value << std::endl;
+  } else {
+    std::cout << "Sanity check: is NOT a string!";
+  }
+
+  Napi::Object global = env.Global();
+  callback.MakeCallback(global, {current.As<Napi::String>()});
+  // callback.Call({current});
 }
