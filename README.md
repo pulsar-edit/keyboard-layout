@@ -42,3 +42,25 @@ On a US layout, this returns:
 }
 */
 ```
+
+
+## Caveats
+
+### Linux
+
+On Linux, there is minimal X11 support and somewhat more comprehensive Wayland support.
+
+#### Both Wayland and X11
+
+* There is no distinction between `getCurrentKeyboardLayout` and `getCurrentKeyboardLanguage`; the latter is an alias of the former.
+
+#### X11
+
+* `observeCurrentKeyboardLayout` is a no-op; we do not receive notifications when the keyboard layout changes. If you want to detect if the keyboard layout has changed, you must poll periodically.
+* `getCurrentKeymap` will return objects with only two properties: `unmodified` and `withShift`. Information is not available about which characters would be produced if `AltGr` or `AltGr+Shift` were pressed.
+
+#### Wayland
+
+* When Wayland support is enabled (as it will be if `libwayland-client` and `libxkbcommon` are present), this library will assume a Wayland environment is present, then fall back to X11 if Wayland setup fails in any way.
+* In a Wayland environment, `observeCurrentKeyboardLayout` works. However…
+* …the Wayland server (as implemented by your window manager) is the authority on when keyboard layouts change, and this might not align with your expectations. For instance, GNOME will change the active layout if you have several layouts and reorder them in your settings; it _will not_ change the active layout if you use keyboard shortcuts to switch “input sources” on the fly. Other window mangers may behave differently.
