@@ -52,19 +52,17 @@ void KeyboardLayoutManager::ProcessCallback(
   auto that = env.GetInstanceData<KeyboardLayoutManager>();
   auto current = that->GetCurrentKeyboardLayout(env);
 
+  if (current.IsString()) {
+    Napi::String str = current.As<Napi::String>();
+    std::string value = str.Utf8Value();
+    std::cout << "Sanity check: value is " << value << std::endl;
+  } else {
+    std::cout << "Sanity check: is NOT a string!";
+  }
+
   Napi::Object global = env.Global();
 
-  // Create args array
-  std::vector<napi_value> args = {current};
-
-  std::cout << "WAT? "
-            << (current.IsUndefined() ? "undefined"
-                                      : (current.IsNull() ? "null" : "defined"))
-            << std::endl;
-
-  // Call with explicit this
-  callback.Call(args);
-  // callback.Call({current});
+  callback.Call({current});
 }
 
 // Runs on a background thread.
