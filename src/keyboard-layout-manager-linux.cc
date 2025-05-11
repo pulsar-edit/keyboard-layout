@@ -374,11 +374,11 @@ std::string KeyboardLayoutManager::GetCurrentKeyboardLayout() {
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
   Napi::HandleScope scope(env);
 
-  const char* rawResult = GetCurrentKeyboardLayout();
-  if (strcmp(rawResult, "") == 0) {
+  std::string rawResult = GetCurrentKeyboardLayout();
+  if (rawResult == "") {
     return env.Null();
   }
-  return Napi::String::New(env, rawResult);
+  return Napi::String::New(env, rawResult.c_str());
 }
 
 void KeyboardLayoutManager::ProcessCallback(
