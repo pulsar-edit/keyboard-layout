@@ -99,7 +99,6 @@ static const struct wl_registry_listener registry_listener = {
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
 
-  std::cout << "in keyboard_keymap" << std::endl;
   // auto env = (static_cast<Napi::Env*>(data));
   // auto that = env->GetInstanceData<KeyboardLayoutManager>();
   auto that = (static_cast<KeyboardLayoutManager *>(data));

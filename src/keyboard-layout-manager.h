@@ -28,11 +28,11 @@ if (!(cond)) {                                                 \
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <X11/Xlib.h>
+#include <string>
+
 #ifdef HAS_WAYLAND
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
-#endif
-#include <string>
 
 typedef struct {
     struct wl_display *display;
@@ -46,6 +46,7 @@ typedef struct {
     xkb_mod_mask_t shift_mask;
     xkb_mod_mask_t alt_gr_mask;
 } WaylandKeymapContext;
+#endif
 
 #endif // __linux__ || __FreeBSD__
 
@@ -59,8 +60,10 @@ public:
 
   Napi::Env _env;
 #if defined(__linux__) || defined(__FreeBSD__)
+#ifdef HAS_WAYLAND
   bool isWayland;
   WaylandKeymapContext *waylandContext;
+#endif
   void ProcessCallbackWrapper();
 #endif
 
@@ -80,14 +83,16 @@ private:
   void Cleanup();
 
 #if defined(__linux__) || defined(__FreeBSD__)
-  uv_poll_t* waylandPoll;
   Display *xDisplay;
   XIC xInputContext;
   XIM xInputMethod;
 
+#ifdef HAS_WAYLAND
+  uv_poll_t* waylandPoll;
   static void OnWaylandEvent(uv_poll_t* handle, int status, int events);
   void SetupWaylandPolling();
   void CleanupWaylandPolling();
+#endif
 #endif
 
   bool isFinalizing = false;
