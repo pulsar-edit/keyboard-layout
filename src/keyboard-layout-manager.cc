@@ -44,51 +44,15 @@ KeyboardLayoutManager::KeyboardLayoutManager(const Napi::CallbackInfo& info):
 }
 
 // Runs on the main thread.
-#ifndef __linux__
 void KeyboardLayoutManager::ProcessCallback(
   Napi::Env env,
   Napi::Function callback
 ) {
-  auto that = env.GetInstanceData<KeyboardLayoutManager>();
-  Napi::Value result = that->GetCurrentKeyboardLayout(env);
+  // auto that = env.GetInstanceData<KeyboardLayoutManager>();
+  // Napi::Value result = that->GetCurrentKeyboardLayout(env);
 
-  callback.Call({ result });
-
-  // Napi::Value result;
-  // if (strcmp(rawResult, "") == 0) {
-  //   result = env.Null();
-  // } else {
-  //   result = Napi::String::New(env, rawResult);
-  // }
-  // that->GetCurrentKeyboardLayout(env);
-
-  // if (current.IsString()) {
-  //   Napi::String str = current.As<Napi::String>();
-  //   std::string value = str.Utf8Value();
-  //   std::cout << "Sanity check: value is " << value << std::endl;
-  // } else {
-  //   std::cout << "Sanity check: is NOT a string!";
-  // }
-
-  // callback.Call({ result });
-
-  // Create arguments array with the layout
-  // std::vector<napi_value> args = { str };
-  //
-  // // Call JS callback with explicit this and args
-  // napi_value global;
-  // napi_get_global(env, &global);
-  //
-  // napi_value result;
-  // napi_call_function(env, global, callback, 1, args.data(), &result);
-  //
-  // std::cout << "Weird Result: " << result << std::endl;
-
-  // Napi::Object global = env.Global();
-  // callback.MakeCallback(global, {current.As<Napi::String>()});
-  // callback.Call({current});
+  callback.Call({});
 }
-#endif
 
 // Runs on a background thread.
 void KeyboardLayoutManager::OnNotificationReceived() {

@@ -334,12 +334,14 @@ void KeyboardLayoutManager::PlatformTeardown() {
 
 void KeyboardLayoutManager::HandleKeyboardLayoutChanged() {}
 
-std::string KeyboardLayoutManager::GetCurrentKeyboardLayout() {
-  std::string result;
+Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
+  Napi::HandleScope scope(env);
+  Napi::Value result;
+
   if (isWayland) {
     if (!waylandContext || !waylandContext->xkb_keymap ||
         !waylandContext->xkb_state) {
-      return std::string("");
+      return env.Null();
     }
 
     // Based on lots of experimentation with Gnome/Wayland, the layout at index
@@ -348,8 +350,7 @@ std::string KeyboardLayoutManager::GetCurrentKeyboardLayout() {
         xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
 
     std::cout << "Current layout: " << layout_name << std::endl;
-    result = std::string(layout_name);
-    // result = Napi::String::New(env, layout_name);
+    result = Napi::String::New(env, layout_name);
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
@@ -358,74 +359,20 @@ std::string KeyboardLayoutManager::GetCurrentKeyboardLayout() {
       XkbStateRec xkbState;
       XkbGetState(xDisplay, XkbUseCoreKbd, &xkbState);
       if (vdr.variant) {
-        result = (std::string(vdr.layout) + "," + std::string(vdr.variant) +
-                 " [" + std::to_string(xkbState.group) + "]");
-        // result = Napi::String::New(
-        //     env, );
+        result = Napi::String::New(
+            env, std::string(vdr.layout) + "," + std::string(vdr.variant) +
+                     " [" + std::to_string(xkbState.group) + "]");
       } else {
-        result = std::string(vdr.layout) + " [" +
-                                   std::to_string(xkbState.group) + "]";
-            // Napi::String::New(env, );
+        result =
+            Napi::String::New(env, std::string(vdr.layout) + " [" +
+                                       std::to_string(xkbState.group) + "]");
       }
     } else {
-      result = std::string("");
+      result = env.Null();
     }
   }
   return result;
 }
-
-Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(Napi::Env env) {
-  Napi::HandleScope scope(env);
-
-  std::string rawResult = GetCurrentKeyboardLayout();
-  if (rawResult == "") {
-    return env.Null();
-  }
-  return Napi::String::New(env, rawResult.c_str());
-}
-
-void KeyboardLayoutManager::ProcessCallback(
-  Napi::Env env,
-  Napi::Function callback
-) {
-  auto that = env.GetInstanceData<KeyboardLayoutManager>();
-  std::string rawResult = that->GetCurrentKeyboardLayout();
-
-  Napi::Value result;
-  if (rawResult == "") {
-    result = env.Null();
-  } else {
-    result = Napi::String::New(env, rawResult.c_str());
-  }
-  // that->GetCurrentKeyboardLayout(env);
-
-  // if (current.IsString()) {
-  //   Napi::String str = current.As<Napi::String>();
-  //   std::string value = str.Utf8Value();
-  //   std::cout << "Sanity check: value is " << value << std::endl;
-  // } else {
-  //   std::cout << "Sanity check: is NOT a string!";
-  // }
-
-  callback.Call({ result });
-
-  // Create arguments array with the layout
-  // std::vector<napi_value> args = { str };
-  //
-  // // Call JS callback with explicit this and args
-  // napi_value global;
-  // napi_get_global(env, &global);
-  //
-  // napi_value result;
-  // napi_call_function(env, global, callback, 1, args.data(), &result);
-  //
-  // std::cout << "Weird Result: " << result << std::endl;
-
-  // Napi::Object global = env.Global();
-  // callback.MakeCallback(global, {current.As<Napi::String>()});
-  // callback.Call({current});
-}
-
 
 Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
     const Napi::CallbackInfo &info) {
