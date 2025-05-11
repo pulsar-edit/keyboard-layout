@@ -88,6 +88,7 @@ static const struct wl_registry_listener registry_listener = {
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
 
+  std::cout << "in keyboard_keymap" << std::endl;
   // auto env = (static_cast<Napi::Env*>(data));
   // auto that = env->GetInstanceData<KeyboardLayoutManager>();
   auto that = (static_cast<KeyboardLayoutManager *>(data));
@@ -668,14 +669,17 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
       static_cast<KeyboardLayoutManager *>(handle->data);
   if (status < 0) {
     // Error occurred
+    std::cout << "Error! " << status << std::endl;
     return;
   }
 
   if (events & UV_READABLE) {
+    std::cout << "Reading events…" << std::endl;
     // Read events from the display
     wl_display_read_events(instance->waylandContext->display);
 
     // Dispatch pending events
+    std::cout << "Dispatching pending events…" << std::endl;
     wl_display_dispatch_pending(instance->waylandContext->display);
   }
 }
