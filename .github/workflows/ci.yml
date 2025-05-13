@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev wayland-protocols libwayland-client0 libwayland-cursor0 libwayland-egl1 libwayland-server0 weston weston-protocols-extra libweston-12-dev xvfb libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data input-utils
+        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev wayland-protocols libwayland-client0 libwayland-cursor0 libwayland-egl1 libwayland-server0 weston libweston-13-dev xvfb libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data input-utils
 
       - name: Set up locale
         if: ${{ runner.os == 'Linux' }}
