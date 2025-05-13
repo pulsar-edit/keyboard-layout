@@ -101,7 +101,8 @@ static const struct wl_registry_listener registry_listener = {
 // Keyboard listener callbacks
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
-  auto ctx = (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
+  auto that = (static_cast<KeyboardLayoutManager *>(data));
+  auto ctx = that->waylandContext;
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
     close(fd);
