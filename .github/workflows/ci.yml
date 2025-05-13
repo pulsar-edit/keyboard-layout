@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev libwayland-client0 libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data
+        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev wayland-protocols libwayland-client0 libwayland-cursor0 libwayland-egl1 libwayland-server0 weston weston-protocols-extra libweston-12-dev xvfb libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data input-utils
 
       - name: Set up locale
         if: ${{ runner.os == 'Linux' }}
@@ -60,6 +60,37 @@ jobs:
           echo "WAYLAND_DISPLAY? $WAYLAND_DISPLAY"
           echo "DISPLAY?: $DISPLAY"
 
+      - name: Set up virtual framebuffer and Wayland
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          # Start Xvfb
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+
+          # Create temporary directory for Wayland socket
+          export XDG_RUNTIME_DIR=/tmp/wayland-test
+          mkdir -p $XDG_RUNTIME_DIR
+          chmod 700 $XDG_RUNTIME_DIR
+
+          # Create Weston config with AZERTY keyboard
+          mkdir -p $HOME/.config/weston
+          cat > $HOME/.config/weston/weston.ini << EOF
+          [keyboard]
+          keymap_layout=fr
+          keymap_variant=azerty
+          keymap_options=grp:alt_shift_toggle
+
+          [core]
+          xwayland=true
+          EOF
+
+          # Start Weston with the config
+          weston --backend=headless-backend.so --socket=wayland-test --width=1024 --height=768 &
+          export WAYLAND_DISPLAY=wayland-test
+
+          # Wait for Weston to be ready
+          sleep 5
+
       - name: Install Node ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -84,5 +115,18 @@ jobs:
 
       - name: Run tests
         uses: GabrielBB/xvfb-action@v1
+        if: ${{ runner.os != 'Linux' }}
         with:
           run: npm test
+
+      - name: Run tests (linux)
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/wayland-test
+          export WAYLAND_DISPLAY=wayland-test
+          export DISPLAY=:99
+
+          export XKB_DEFAULT_LAYOUT=fr
+          export XKB_DEFAULT_VARIANT=azerty
+
+          npm test
