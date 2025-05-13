@@ -10,9 +10,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#ifdef DEBUG
 #include <iostream>
-#endif
+// #ifdef DEBUG
+// #endif
 
 // Wayland-only block begins…
 #ifdef HAS_WAYLAND
@@ -384,12 +384,14 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
 
   waylandContext->display = wl_display_connect(NULL);
   if (!waylandContext->display) {
+    std::cout << "No display" << std::endl;
     CleanupWaylandContext(waylandContext);
     goto x11;
   }
 
   waylandContext->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   if (!waylandContext->xkb_context) {
+    std::cout << "No context" << std::endl;
     CleanupWaylandContext(waylandContext);
     goto x11;
   }
@@ -413,6 +415,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
     wl_keyboard_add_listener(waylandContext->keyboard, &keyboard_listener,
                              this);
   } else {
+    std::cout << "No keyboard" << std::endl;
     CleanupWaylandContext(waylandContext);
     goto x11;
   }
@@ -422,6 +425,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
   // TODO: Timeout?
   while (!waylandContext->keymap_received) {
     if (wl_display_dispatch(waylandContext->display) < 0) {
+      std::cout << "No keymap event" << std::endl;
       CleanupWaylandContext(waylandContext);
       goto x11;
     }
