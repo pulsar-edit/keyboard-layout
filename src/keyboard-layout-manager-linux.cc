@@ -14,8 +14,11 @@
 #include <iostream>
 #endif
 
+// Wayland-only block begins…
 #ifdef HAS_WAYLAND
+
 #include <optional>
+
 // Enumerates the various modifiers on this keyboard and tests which one brings
 // us to Level 3. This correlates to what we expect from the AltGr key.
 static std::optional<size_t> IndexOfLevel3Modifier(WaylandKeymapContext* ctx) {
@@ -98,11 +101,7 @@ static const struct wl_registry_listener registry_listener = {
 // Keyboard listener callbacks
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
                             uint32_t format, int32_t fd, uint32_t size) {
-
-  // auto env = (static_cast<Napi::Env*>(data));
-  // auto that = env->GetInstanceData<KeyboardLayoutManager>();
-  auto that = (static_cast<KeyboardLayoutManager *>(data));
-  auto ctx = that->waylandContext;
+  auto ctx = (static_cast<KeyboardLayoutManager *>(data))->waylandContext;
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
     close(fd);
@@ -110,9 +109,11 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   }
 
   char *keymap_string = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
 #ifdef DEBUG
   std::cout << "KEYMAP STRING:" << std::endl << keymap_string << std::endl;
 #endif
+
   if (keymap_string == MAP_FAILED) {
     close(fd);
     return;
@@ -163,13 +164,13 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
     // produces the expected result, so it's more speculative than the first
     // approach.
     const char *alt_gr_names[] = {
-        "ISO_Level3_Shift", // Most common for European layouts
-        "Mode_switch",      // Often used as an alias
-        "AltGr",            // Explicit name on some layouts
-        "Mod5",             // Often mapped to AltGr
-        "Mod3",             // Sometimes used for AltGr
-        "LevelThree",       // Another name used in some layouts
-        "Right Alt"         // Sometimes used explicitly
+      "ISO_Level3_Shift", // Most common for European layouts
+      "Mode_switch",      // Often used as an alias
+      "AltGr",            // Explicit name on some layouts
+      "Mod5",             // Often mapped to AltGr
+      "Mod3",             // Sometimes used for AltGr
+      "LevelThree",       // Another name used in some layouts
+      "Right Alt"         // Sometimes used explicitly
     };
 
     size_t alt_gr_length = sizeof(alt_gr_names) / sizeof(alt_gr_names[0]);
@@ -193,7 +194,8 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
   ctx->keymap_received = true;
 }
 
-// `wayland-client` requires that we
+// `wayland-client` requires that we provide a whole bundle of listeners, even
+// though we don't really need the rest of these.
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
                            uint32_t serial, struct wl_surface *surface,
                            struct wl_array *keys) {
@@ -249,7 +251,7 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
 // Given a Wayland context, a keycode, and a modifier mask, return the
 // character that would be produced by that keycode.
 static char *GetCharForKeycode(WaylandKeymapContext *ctx, uint32_t keycode,
-                          xkb_mod_mask_t modifiers) {
+                               xkb_mod_mask_t modifiers) {
   // At first I thought we needed to offset this by 8, but it already seems
   // correct as-is.
   xkb_keycode_t xkb_keycode = keycode;
@@ -341,14 +343,14 @@ void KeyboardLayoutManager::OnWaylandEvent(uv_poll_t *handle, int status,
       wl_display_dispatch_pending(instance->waylandContext->display);
     }
     // Now read events (shouldn't block since we've been notified data is
-    // available)
+    // available).
     if (wl_display_read_events(instance->waylandContext->display) < 0) {
 #ifdef DEBUG
-    std::cout << "ERROR Reading events…" << strerror(errno) << std::endl;
+    std::cout << "Error reading events…" << strerror(errno) << std::endl;
 #endif
       return;
     }
-    // Dispatch the events we just read
+    // Dispatch the events we just read.
 #ifdef DEBUG
     std::cout << "Dispatching pending events…" << std::endl;
 #endif
@@ -365,7 +367,7 @@ void KeyboardLayoutManager::CleanupWaylandPolling() {
   }
 }
 
-#endif
+#endif // HAS_WAYLAND
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
   auto env = info.Env();
@@ -430,7 +432,7 @@ void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo &info) {
   SetupWaylandPolling();
   return;
 
-#endif
+#endif // HAS_WAYLAND
 
 x11:
   isWayland = false;
@@ -501,7 +503,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
     std::cout << "Current layout: " << layout_name << std::endl;
 #endif
     result = Napi::String::New(env, layout_name);
-#endif
+#endif // HAS_WAYLAND
   } else {
     // X11
     XkbRF_VarDefsRec vdr;
@@ -597,6 +599,7 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
       Napi::String::New(env, "withAltGraphShift");
 
   if (isWayland) {
+
 #ifdef HAS_WAYLAND
     size_t keyCodeMapSize = sizeof(keyCodeMap) / sizeof(keyCodeMap[0]);
     for (size_t i = 0; i < keyCodeMapSize; i++) {
@@ -625,7 +628,8 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
         }
       }
     }
-#endif
+#endif // HAS_WAYLAND
+
   } else {
     // Clear cached keymap.
     XMappingEvent eventMap = {MappingNotify,   0, false, xDisplay, 0,

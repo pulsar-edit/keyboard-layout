@@ -35,18 +35,22 @@ if (!(cond)) {                                                 \
 #include <xkbcommon/xkbcommon.h>
 
 typedef struct {
-    struct wl_display *display;
-    struct wl_registry *registry;
-    struct wl_seat *seat;
-    struct wl_keyboard *keyboard;
-    struct xkb_context *xkb_context;
-    struct xkb_keymap *xkb_keymap;
-    struct xkb_state *xkb_state;
-    bool keymap_received;
-    xkb_mod_mask_t shift_mask;
-    xkb_mod_mask_t alt_gr_mask;
+  struct wl_display *display;
+  struct wl_registry *registry;
+  struct wl_seat *seat;
+  struct wl_keyboard *keyboard;
+  struct xkb_context *xkb_context;
+  struct xkb_keymap *xkb_keymap;
+  struct xkb_state *xkb_state;
+
+  // Whether we've received the first `keymap` event.
+  bool keymap_received;
+  // The modifier mask for the `Shift` key.
+  xkb_mod_mask_t shift_mask;
+  // The modifier mask for the `AltGr` key.
+  xkb_mod_mask_t alt_gr_mask;
 } WaylandKeymapContext;
-#endif
+#endif // HAS_WAYLAND
 
 #endif // __linux__ || __FreeBSD__
 
@@ -60,17 +64,16 @@ public:
 
   Napi::Env _env;
 #if defined(__linux__) || defined(__FreeBSD__)
+  void ProcessCallbackWrapper();
+
 #ifdef HAS_WAYLAND
   bool isWayland;
   WaylandKeymapContext *waylandContext;
-#endif
-  void ProcessCallbackWrapper();
-#endif
+#endif // HAS_WAYLAND
+
+#endif // __linux__ || __FreeBSD__
 
 private:
-#if defined(__linux__)
-  std::string GetCurrentKeyboardLayout();
-#endif
   Napi::Value GetCurrentKeyboardLayout(const Napi::CallbackInfo& info);
   Napi::Value GetCurrentKeyboardLanguage(const Napi::CallbackInfo& info);
   Napi::Value GetInstalledKeyboardLanguages(const Napi::CallbackInfo& info);
@@ -92,8 +95,8 @@ private:
   static void OnWaylandEvent(uv_poll_t* handle, int status, int events);
   void SetupWaylandPolling();
   void CleanupWaylandPolling();
-#endif
-#endif
+#endif // HAS_WAYLAND
+#endif // __linux__ || __FreeBSD__
 
   bool isFinalizing = false;
   Napi::FunctionReference callback;
@@ -102,4 +105,4 @@ private:
 
 Napi::Object Init(Napi::Env env, Napi::Object exports);
 
-#endif  // SRC_KEYBORD_LAYOUT_OBSERVER_H_
+#endif // SRC_KEYBORD_LAYOUT_OBSERVER_H_
