@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data
+        run: sudo apt-get update && sudo apt-get install libx11-dev libxkbfile-dev libwayland-dev libwayland-client0 libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data
 
       - name: Set up locale
         if: ${{ runner.os == 'Linux' }}
