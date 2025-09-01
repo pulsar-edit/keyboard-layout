@@ -1,5 +1,5 @@
 {
-  "name": "keyboard-layout",
+  "name": "@pulsar-edit/keyboard-layout",
   "version": "2.0.17",
   "description": "Read and observe the current keyboard layout on OS X.",
   "main": "./lib/keyboard-layout",
@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/atom/keyboard-layout.git"
+    "url": "https://github.com/pulsar-edit/keyboard-layout.git"
   },
   "bugs": {
-    "url": "https://github.com/atom/keyboard-layout/issues"
+    "url": "https://github.com/pulsar-edit/keyboard-layout/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "http://github.com/atom/keyboard-layout/raw/master/LICENSE.md"
+      "url": "http://github.com/pulsar-edit/keyboard-layout/raw/master/LICENSE.md"
     }
   ],
   "dependencies": {

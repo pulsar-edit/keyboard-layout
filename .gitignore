@@ -6,4 +6,5 @@ npm-debug.log
 build
 .vscode
 .cache
+.tool-versions
 compile_commands.json
