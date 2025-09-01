@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        uses: GabrielBB/xvfb-action@v1
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - uses: GabrielBB/xvfb-action@v1
       - run: sudo apt install libx11-dev libxkbfile-dev
       - run: python3 -m pip install setuptools
       - run: npm ci
