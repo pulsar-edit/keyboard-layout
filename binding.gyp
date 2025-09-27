@@ -2,11 +2,21 @@
   "targets": [
     {
       "target_name": "keyboard-layout-manager",
+      "cflags!": ["-fno-exceptions"],
+      "cflags_cc!": ["-fno-exceptions"],
+      "xcode_settings": {
+        "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+        "CLANG_CXX_LIBRARY": "libc++",
+        "MACOSX_DEPLOYMENT_TARGET": "10.7",
+      },
+      "msvs_settings": {
+        "VCCLCompilerTool": {"ExceptionHandling": 1},
+      },
       "sources": [
         "src/keyboard-layout-manager.cc"
       ],
       "include_dirs": [
-        "<!(node -e \"require('nan')\")",
+        "<!(node -p \"require('node-addon-api').include_dir\")",
         "chrome_headers",
       ],
       "conditions": [
@@ -48,21 +58,42 @@
           "sources": [
             "src/keyboard-layout-manager-linux.cc",
           ],
-          "link_settings": {
-            "libraries": [
-              "-lX11", "-lxkbfile"
-            ]
-          }
+          "cflags_cc": ["-std=c++17"],
+          "variables": {
+            "wayland_available%": "<!(pkg-config --exists wayland-client && echo 1 || echo 0)"
+          },
+          "conditions": [
+            ["wayland_available==1", {
+              "link_settings": {
+                "libraries": [
+                  "-lX11",
+                  "-lxkbfile",
+                  "-lxkbcommon",
+                  "-lwayland-client"
+                ]
+              },
+              "defines": ["HAS_WAYLAND=1"]
+            }, {
+              "link_settings": {
+                "libraries": [
+                  "-lX11",
+                  "-lxkbfile"
+                ]
+              },
+              "defines": ["HAS_WAYLAND=0"]
+            }]
+          ]
         }],  # OS=="linux"
         ['OS=="freebsd"', {
           "sources": [
             "src/keyboard-layout-manager-linux.cc",
           ],
           "include_dirs": [
+            "<!(node -p \"require('node-addon-api').include_dir\")",
             "/usr/local/include", "/usr/local/include/X11",
           ],
           "ldflags": [
-            "-lX11", "-lxkbfile", "-L/usr/local/lib",
+            "-lX11", "-lxkbfile", "-lxkbcommon", "-L/usr/local/lib",
           ],
         }],  # OS=="posix"
       ]
