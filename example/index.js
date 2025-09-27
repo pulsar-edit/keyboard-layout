@@ -1,5 +1,7 @@
-// Sample usage of `keyboard-layout`.
-const KeyboardLayout = require('./lib/keyboard-layout');
+// Sample usage of `keyboard-layout`. The next line imports the library at a
+// relative path so that it will work in place, but in regular usage you'd
+// import at `@pulsar-edit/keyboard-layout` instead.
+const KeyboardLayout = require('../lib/keyboard-layout');
 
 console.log('Current layout:', KeyboardLayout.getCurrentKeyboardLayout());
 
