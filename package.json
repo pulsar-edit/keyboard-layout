@@ -1,6 +1,6 @@
 {
   "name": "@pulsar-edit/keyboard-layout",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Read and observe the current keyboard layout on OS X.",
   "main": "./lib/keyboard-layout",
   "scripts": {
