@@ -33,5 +33,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org/
+      - run: sudo apt install libx11-dev libxkbfile-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libxkbcommon0 xkb-data
       - run: npm ci
       - run: npm publish --access public
