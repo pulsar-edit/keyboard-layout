@@ -34,8 +34,6 @@ void KeyboardLayoutManager::PlatformTeardown() {
 }
 
 void KeyboardLayoutManager::PlatformSetup(const Napi::CallbackInfo& info) {
-  std::cout << "PlatformSetup" << std::endl;
-
   CFNotificationCenterAddObserver(
     CFNotificationCenterGetDistributedCenter(),
     this,
