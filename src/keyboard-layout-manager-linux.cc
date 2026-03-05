@@ -14,6 +14,10 @@
 #include <iostream>
 #endif
 
+// Whether to check XInputContext when trying to match up a keyboard key with
+// a character.
+#define USE_XIC 0
+
 // Wayland-only block begins…
 #ifdef HAS_WAYLAND
 
@@ -560,7 +564,10 @@ Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext,
   keyEvent->keycode = xkbKeycode;
   keyEvent->state = state;
 
-  if (xInputContext) {
+  // We're keeping this code path around so that we can return to using it in
+  // certain scenarios if need be. But for now it's producing the wrong results
+  // in many cases.
+  if (USE_XIC) {
     wchar_t characters[2];
     char utf8[MB_CUR_MAX * 2 + 1];
     int count =
