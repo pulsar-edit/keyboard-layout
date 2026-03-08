@@ -530,6 +530,20 @@ static uint FindAltGrMask(Display *display) {
     }
   }
   printf("level entries — 1:%d 2:%d 3:%d 4:%d\n", counts[0], counts[1], counts[2], counts[3]);
+
+  printf("Sample Level 3 entry masks: ");
+  int shown = 0;
+  for (int t = 0; t < xkb->map->num_types && shown < 5; t++) {
+    XkbKeyTypePtr keyType = &xkb->map->types[t];
+    for (int i = 0; i < keyType->map_count && shown < 5; i++) {
+      if (keyType->map[i].level == 2) {
+        printf("mask=0x%x active=%d  ", keyType->map[i].mods.mask, keyType->map[i].active);
+        shown++;
+      }
+    }
+  }
+  printf("\n");
+
   XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
   return 0;
 }
