@@ -493,6 +493,7 @@ void KeyboardLayoutManager::SetupX11Polling() {
     return;
 
   XkbSelectEvents(xDisplay, XkbUseCoreKbd, XkbStateNotifyMask, XkbStateNotifyMask);
+  XFlush(xDisplay);
 
   int fd = ConnectionNumber(xDisplay);
   x11Poll = new uv_poll_t;
