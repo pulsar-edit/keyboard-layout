@@ -227,7 +227,7 @@ static void keyboard_modifiers(void *data, struct wl_keyboard *keyboard,
 
   if (!ctx->xkb_state) return;
 
-  xkb_state_update_mask(ctx->kb_state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
+  xkb_state_update_mask(ctx->xkb_state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
   if (ctx->active_layout != (xkb_layout_index_t) group) {
     ctx->active_layout = group;
     that->OnNotificationReceived();
@@ -506,7 +506,7 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
     }
 
     const char *layout_name =
-        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, ctx->active_layout);
+        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, waylandContext->active_layout);
 
 #ifdef DEBUG
     std::cout << "Current layout: " << layout_name << std::endl;
