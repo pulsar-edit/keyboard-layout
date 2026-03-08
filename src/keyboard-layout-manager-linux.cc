@@ -521,7 +521,6 @@ static uint FindAltGrMask(Display *display) {
     }
   }
 
-  XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
   // Diagnostic: print how many level-2 entries exist at all
   int totalLevel2 = 0;
   for (int t = 0; t < xkb->map->num_types; t++) {
@@ -532,6 +531,7 @@ static uint FindAltGrMask(Display *display) {
     }
   }
   printf("num_types: %d, total level-2 entries: %d\n", xkb->map->num_types, totalLevel2);
+  XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
   return 0;
 }
 
