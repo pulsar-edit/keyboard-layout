@@ -688,6 +688,39 @@ Napi::Value CharacterForNativeCode(Napi::Env env, XIC xInputContext,
   }
 }
 
+static Napi::Value X11CharacterForKeySym(Napi::Env env, KeySym sym) {
+  if (sym == NoSymbol) return env.Null();
+
+  uint32_t unicode = 0;
+#ifdef HAS_WAYLAND
+  // xkb_keysym_to_utf32 handles all keysym ranges correctly.
+  unicode = xkb_keysym_to_utf32((xkb_keysym_t)sym);
+#else
+  if (sym >= 0x0020 && sym <= 0x007E) unicode = sym;
+  else if (sym >= 0x00A0 && sym <= 0x00FF) unicode = sym;
+  else if (sym >= 0x01000100 && sym <= 0x0110FFFF) unicode = sym - 0x01000000;
+#endif
+
+  if (unicode < 0x20) return env.Null();
+
+  char utf8[5] = {0};
+  if (unicode < 0x80) {
+    utf8[0] = unicode;
+  } else if (unicode < 0x800) {
+    utf8[0] = 0xC0 | (unicode >> 6);
+    utf8[1] = 0x80 | (unicode & 0x3F);
+  } else if (unicode < 0x10000) {
+    utf8[0] = 0xE0 | (unicode >> 12);
+    utf8[1] = 0x80 | ((unicode >> 6) & 0x3F);
+    utf8[2] = 0x80 | (unicode & 0x3F);
+  } else {
+    utf8[0] = 0xF0 | (unicode >> 18);
+    utf8[1] = 0x80 | ((unicode >> 12) & 0x3F);
+    utf8[2] = 0x80 | ((unicode >> 6) & 0x3F);
+    utf8[3] = 0x80 | (unicode & 0x3F);
+  }
+  return Napi::String::New(env, utf8);
+}
 
 Napi::Value
 KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
@@ -712,11 +745,20 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
             WaylandCharacterForCode(env, waylandContext, xkbKeycode, 0);
         Napi::Value withShift = WaylandCharacterForCode(
             env, waylandContext, xkbKeycode, waylandContext->shift_mask);
-        Napi::Value withAltGraph = WaylandCharacterForCode(
-            env, waylandContext, xkbKeycode, waylandContext->alt_gr_mask);
-        Napi::Value withAltGraphShift = WaylandCharacterForCode(
-            env, waylandContext, xkbKeycode,
-            waylandContext->shift_mask | waylandContext->alt_gr_mask);
+        Napi::Value withAltGraph = env.Null();
+        Napi::Value withAltGraphShift = env.Null();
+        if (x11AltGrMask) {
+          KeySym altGrSym, altGrShiftSym;
+          unsigned int modsRtrn;
+          XkbLookupKeySym(xDisplay, xkbKeycode,
+                          keyboardBaseState | x11AltGrMask,
+                          &modsRtrn, &altGrSym);
+          XkbLookupKeySym(xDisplay, xkbKeycode,
+                          keyboardBaseState | ShiftMask | x11AltGrMask,
+                          &modsRtrn, &altGrShiftSym);
+          withAltGraph = X11CharacterForKeySym(env, altGrSym);
+          withAltGraphShift = X11CharacterForKeySym(env, altGrShiftSym);
+        }
 
         if (unmodified.IsString() || withShift.IsString() ||
             withAltGraph.IsString() || withAltGraphShift.IsString()) {
