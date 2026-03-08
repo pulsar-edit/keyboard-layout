@@ -69,6 +69,12 @@ public:
 #if defined(__linux__) || defined(__FreeBSD__)
   void ProcessCallbackWrapper();
 
+  int xkbBaseEvent = 0;
+  uv_poll_t* x11Poll = nullptr;
+  static void OnX11Event(uv_poll_t* handle, int status, int events);
+  void SetupX11Polling();
+  void CleanupX11Polling();
+
 #ifdef HAS_WAYLAND
   bool isWayland;
   WaylandKeymapContext *waylandContext;

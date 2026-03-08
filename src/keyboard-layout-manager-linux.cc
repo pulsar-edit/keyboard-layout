@@ -482,6 +482,54 @@ x11:
         XCreateIC(xInputMethod, XNInputStyle, bestMatchStyle, XNClientWindow,
                   window, XNFocusWindow, window, NULL);
   }
+  SetupX11Polling();
+}
+
+void KeyboardLayoutManager::SetupX11Polling() {
+  if (!xDisplay) return;
+
+  int opcode, baseError;
+  if (!XkbQueryExtension(xDisplay, &opcode, &xkbBaseEvent, &baseError, NULL, NULL))
+    return;
+
+  XkbSelectEvents(xDisplay, XkbUseCoreKbd, XkbStateNotifyMask, XkbStateNotifyMask);
+
+  int fd = ConnectionNumber(xDisplay);
+  x11Poll = new uv_poll_t;
+  x11Poll->data = this;
+  uv_poll_init(uv_default_loop(), x11Poll, fd);
+  uv_poll_start(x11Poll, UV_READABLE, OnX11Event);
+  uv_unref((uv_handle_t *)x11Poll);
+}
+
+void KeyboardLayoutManager::CleanupX11Polling() {
+  if (x11Poll) {
+    uv_poll_stop(x11Poll);
+    uv_close((uv_handle_t *)x11Poll,
+             [](uv_handle_t *handle) { delete (uv_poll_t *)handle; });
+    x11Poll = nullptr;
+  }
+}
+
+void KeyboardLayoutManager::OnX11Event(uv_poll_t *handle, int status, int events) {
+  KeyboardLayoutManager *instance =
+      static_cast<KeyboardLayoutManager *>(handle->data);
+  if (status < 0) return;
+
+  if (events & UV_READABLE) {
+    while (XPending(instance->xDisplay)) {
+      XEvent event;
+      XNextEvent(instance->xDisplay, &event);
+      if (event.type == instance->xkbBaseEvent) {
+        XkbEvent *xkbEvent = (XkbEvent *)&event;
+        if (xkbEvent->any.xkb_type == XkbStateNotify) {
+          if (xkbEvent->state.changed & XkbGroupStateMask) {
+            instance->OnNotificationReceived();
+          }
+        }
+      }
+    }
+  }
 }
 
 void KeyboardLayoutManager::PlatformTeardown() {
@@ -489,6 +537,7 @@ void KeyboardLayoutManager::PlatformTeardown() {
   CleanupWaylandPolling();
   CleanupWaylandContext(waylandContext);
 #endif
+  CleanupX11Polling();
   callback.Reset();
 };
 
