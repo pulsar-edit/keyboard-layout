@@ -745,20 +745,11 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
             WaylandCharacterForCode(env, waylandContext, xkbKeycode, 0);
         Napi::Value withShift = WaylandCharacterForCode(
             env, waylandContext, xkbKeycode, waylandContext->shift_mask);
-        Napi::Value withAltGraph = env.Null();
-        Napi::Value withAltGraphShift = env.Null();
-        if (x11AltGrMask) {
-          KeySym altGrSym, altGrShiftSym;
-          unsigned int modsRtrn;
-          XkbLookupKeySym(xDisplay, xkbKeycode,
-                          keyboardBaseState | x11AltGrMask,
-                          &modsRtrn, &altGrSym);
-          XkbLookupKeySym(xDisplay, xkbKeycode,
-                          keyboardBaseState | ShiftMask | x11AltGrMask,
-                          &modsRtrn, &altGrShiftSym);
-          withAltGraph = X11CharacterForKeySym(env, altGrSym);
-          withAltGraphShift = X11CharacterForKeySym(env, altGrShiftSym);
-        }
+        Napi::Value withAltGraph = WaylandCharacterForCode(
+            env, waylandContext, xkbKeycode, waylandContext->alt_gr_mask);
+        Napi::Value withAltGraphShift = WaylandCharacterForCode(
+            env, waylandContext, xkbKeycode,
+            waylandContext->shift_mask | waylandContext->alt_gr_mask);
 
         if (unmodified.IsString() || withShift.IsString() ||
             withAltGraph.IsString() || withAltGraphShift.IsString()) {
@@ -811,12 +802,16 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
         Napi::Value withAltGraph = env.Null();
         Napi::Value withAltGraphShift = env.Null();
         if (x11AltGrMask) {
-          withAltGraph = CharacterForNativeCode(
-              env, xInputContext, keyEvent, xkbKeycode,
-              keyboardBaseState | x11AltGrMask);
-          withAltGraphShift = CharacterForNativeCode(
-              env, xInputContext, keyEvent, xkbKeycode,
-              keyboardBaseState | ShiftMask | x11AltGrMask);
+          KeySym altGrSym, altGrShiftSym;
+          unsigned int modsRtrn;
+          XkbLookupKeySym(xDisplay, xkbKeycode,
+                          keyboardBaseState | x11AltGrMask, &modsRtrn,
+                          &altGrSym);
+          XkbLookupKeySym(xDisplay, xkbKeycode,
+                          keyboardBaseState | ShiftMask | x11AltGrMask,
+                          &modsRtrn, &altGrShiftSym);
+          withAltGraph = X11CharacterForKeySym(env, altGrSym);
+          withAltGraphShift = X11CharacterForKeySym(env, altGrShiftSym);
         }
 
         if (unmodified.IsString() || withShift.IsString() ||
