@@ -49,6 +49,9 @@ typedef struct {
   xkb_mod_mask_t shift_mask;
   // The modifier mask for the `AltGr` key.
   xkb_mod_mask_t alt_gr_mask;
+  // The index of the currently active layout (group), updated via the
+  // `keyboard_modifiers` event.
+  xkb_layout_index_t active_layout;
 } WaylandKeymapContext;
 #endif // HAS_WAYLAND
 

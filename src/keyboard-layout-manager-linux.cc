@@ -222,7 +222,16 @@ static void keyboard_modifiers(void *data, struct wl_keyboard *keyboard,
                                uint32_t serial, uint32_t mods_depressed,
                                uint32_t mods_latched, uint32_t mods_locked,
                                uint32_t group) {
-  // Not used
+  auto that = (static_cast<KeyboardLayoutManager *>(data));
+  auto ctx = that->waylandContext;
+
+  if (!ctx->xkb_state) return;
+
+  xkb_state_update_mask(ctx->kb_state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
+  if (ctx->active_layout != (xkb_layout_index_t) group) {
+    ctx->active_layout = group;
+    that->OnNotificationReceived();
+  }
 }
 
 static void keyboard_repeat_info(void *data, struct wl_keyboard *keyboard,
@@ -267,7 +276,7 @@ static char *GetCharForKeycode(WaylandKeymapContext *ctx, uint32_t keycode,
     return strdup("error");
   }
 
-  xkb_state_update_mask(temp_state, modifiers, 0, 0, 0, 0, 0);
+  xkb_state_update_mask(temp_state, modifiers, 0, 0, 0, 0, ctx->active_layout);
 
   xkb_keysym_t keysym = xkb_state_key_get_one_sym(temp_state, xkb_keycode);
 
@@ -496,13 +505,8 @@ Napi::Value KeyboardLayoutManager::GetCurrentKeyboardLayout(
       return env.Null();
     }
 
-    // Based on lots of experimentation with Gnome/Wayland, the layout at index
-    // 0 will always be the active layout. This may or may not be true for
-    // other Wayland server implementations, but we'll go with it for now —
-    // because if it isn't true, we'd be hard-pressed to discover that
-    // information any other way.
     const char *layout_name =
-        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, 0);
+        xkb_keymap_layout_get_name(waylandContext->xkb_keymap, ctx->active_layout);
 
 #ifdef DEBUG
     std::cout << "Current layout: " << layout_name << std::endl;
