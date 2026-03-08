@@ -521,16 +521,15 @@ static uint FindAltGrMask(Display *display) {
     }
   }
 
-  // Diagnostic: print how many level-2 entries exist at all
-  int totalLevel2 = 0;
+  int counts[4] = {0};
   for (int t = 0; t < xkb->map->num_types; t++) {
     XkbKeyTypePtr keyType = &xkb->map->types[t];
     for (int i = 0; i < keyType->map_count; i++) {
-      if (keyType->map[i].active && keyType->map[i].level == 2)
-        totalLevel2++;
+      int l = keyType->map[i].level;
+      if (l < 4) counts[l]++;
     }
   }
-  printf("num_types: %d, total level-2 entries: %d\n", xkb->map->num_types, totalLevel2);
+  printf("level entries — 1:%d 2:%d 3:%d 4:%d\n", counts[0], counts[1], counts[2], counts[3]);
   XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
   return 0;
 }
