@@ -486,29 +486,38 @@ x11:
 }
 
 static uint FindAltGrMask(Display *display) {
-  uint modMasks[] = { Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask };
+  static const char *altGrSymNames[] = {
+    "ISO_Level3_Shift", "Mode_switch",
+  };
 
-  for (size_t m = 0; m < sizeof(modMasks) / sizeof(modMasks[0]); m++) {
-    uint modMask = modMasks[m];
-    int altGrCount = 0;
+  XModifierKeymap *modmap = XGetModifierMapping(display);
+  if (!modmap) return 0;
 
-    for (KeyCode k = 8; k < 256; k++) {
-      KeySym unmodSym, shiftSym, modSym;
-      unsigned int modsRtrn;
+  // modifiermap has 8 rows (Shift, Lock, Control, Mod1–Mod5),
+  // each with max_keypermod keycodes.
+  uint modMasks[] = {
+    ShiftMask, LockMask, ControlMask,
+    Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask
+  };
 
-      XkbLookupKeySym(display, k, 0, &modsRtrn, &unmodSym);
-      XkbLookupKeySym(display, k, ShiftMask, &modsRtrn, &shiftSym);
-      XkbLookupKeySym(display, k, modMask, &modsRtrn, &modSym);
+  for (int modIdx = 0; modIdx < 8; modIdx++) {
+    for (int j = 0; j < modmap->max_keypermod; j++) {
+      KeyCode kc = modmap->modifiermap[modIdx * modmap->max_keypermod + j];
+      if (kc == 0) continue;
 
-      if (modSym != NoSymbol && modSym != unmodSym && modSym != shiftSym) {
-        if (++altGrCount >= 3) break;
+      for (int level = 0; level < 4; level++) {
+        KeySym sym = XkbKeycodeToKeysym(display, kc, 0, level);
+        for (size_t n = 0; n < sizeof(altGrSymNames) / sizeof(altGrSymNames[0]); n++) {
+          if (sym == XStringToKeysym(altGrSymNames[n])) {
+            XFreeModifiermap(modmap);
+            return modMasks[modIdx];
+          }
+        }
       }
     }
-
-    if (altGrCount >= 3)
-      return modMask;
   }
 
+  XFreeModifiermap(modmap);
   return 0;
 }
 
