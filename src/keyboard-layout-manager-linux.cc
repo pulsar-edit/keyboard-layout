@@ -486,65 +486,29 @@ x11:
 }
 
 static uint FindAltGrMask(Display *display) {
-  XkbDescPtr xkb = XkbGetKeyboard(display, XkbAllClientInfoMask, XkbUseCoreKbd);
-  if (!xkb || !xkb->map) {
-    if (xkb) XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
-    return 0;
-  }
-
   uint modMasks[] = { Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask };
 
   for (size_t m = 0; m < sizeof(modMasks) / sizeof(modMasks[0]); m++) {
     uint modMask = modMasks[m];
-    int level3Count = 0;
+    int altGrCount = 0;
 
-    for (KeyCode k = xkb->min_key_code; k <= xkb->max_key_code; k++) {
-      int ktIndex = xkb->map->key_sym_map[k].kt_index[0];
-      if (ktIndex >= xkb->map->num_types) continue;
-      XkbKeyTypePtr keyType = &xkb->map->types[ktIndex];
+    for (KeyCode k = 8; k < 256; k++) {
+      KeySym unmodSym, shiftSym, modSym;
+      unsigned int modsRtrn;
 
-      for (int i = 0; i < keyType->map_count; i++) {
-        if (keyType->map[i].active &&
-            (keyType->map[i].mods.mask & modMask) == modMask &&
-            keyType->map[i].level == 2) {
-          level3Count++;
-          break;
-        }
+      XkbLookupKeySym(display, k, 0, &modsRtrn, &unmodSym);
+      XkbLookupKeySym(display, k, ShiftMask, &modsRtrn, &shiftSym);
+      XkbLookupKeySym(display, k, modMask, &modsRtrn, &modSym);
+
+      if (modSym != NoSymbol && modSym != unmodSym && modSym != shiftSym) {
+        if (++altGrCount >= 3) break;
       }
-
-      if (level3Count >= 3) break;
     }
 
-    if (level3Count >= 3) {
-      XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
+    if (altGrCount >= 3)
       return modMask;
-    }
   }
 
-  int counts[4] = {0};
-  for (int t = 0; t < xkb->map->num_types; t++) {
-    XkbKeyTypePtr keyType = &xkb->map->types[t];
-    for (int i = 0; i < keyType->map_count; i++) {
-      int l = keyType->map[i].level;
-      if (l < 4) counts[l]++;
-    }
-  }
-  printf("level entries — 1:%d 2:%d 3:%d 4:%d\n", counts[0], counts[1], counts[2], counts[3]);
-
-  printf("Sample Level 3 entry masks: ");
-  int shown = 0;
-  for (int t = 0; t < xkb->map->num_types && shown < 5; t++) {
-    XkbKeyTypePtr keyType = &xkb->map->types[t];
-    for (int i = 0; i < keyType->map_count && shown < 5; i++) {
-      if (keyType->map[i].level == 2) {
-        printf("mask=0x%x active=%d  ", keyType->map[i].mods.mask, keyType->map[i].active);
-        shown++;
-      }
-    }
-  }
-  printf("\n");
-
-  XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
   return 0;
 }
 
