@@ -536,6 +536,7 @@ void KeyboardLayoutManager::SetupX11Polling() {
   XFlush(xDisplay);
 
   x11AltGrMask = FindAltGrMask(xDisplay);
+  printf("x11AltGrMask: 0x%x\n", x11AltGrMask);
 
   int fd = ConnectionNumber(xDisplay);
   x11Poll = new uv_poll_t;
