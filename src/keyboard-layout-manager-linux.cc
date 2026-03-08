@@ -485,6 +485,46 @@ x11:
   SetupX11Polling();
 }
 
+static uint FindAltGrMask(Display *display) {
+  XkbDescPtr xkb = XkbGetKeyboard(display, XkbAllClientInfoMask, XkbUseCoreKbd);
+  if (!xkb || !xkb->map) {
+    if (xkb) XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
+    return 0;
+  }
+
+  uint modMasks[] = { Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask };
+
+  for (size_t m = 0; m < sizeof(modMasks) / sizeof(modMasks[0]); m++) {
+    uint modMask = modMasks[m];
+    int level3Count = 0;
+
+    for (KeyCode k = xkb->min_key_code; k <= xkb->max_key_code; k++) {
+      int ktIndex = xkb->map->key_sym_map[k].kt_index[0];
+      if (ktIndex >= xkb->map->num_types) continue;
+      XkbKeyTypePtr keyType = &xkb->map->types[ktIndex];
+
+      for (int i = 0; i < keyType->map_count; i++) {
+        if (keyType->map[i].active &&
+            (keyType->map[i].mods.mask & modMask) == modMask &&
+            keyType->map[i].level == 2) {
+          level3Count++;
+          break;
+        }
+      }
+
+      if (level3Count >= 3) break;
+    }
+
+    if (level3Count >= 3) {
+      XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
+      return modMask;
+    }
+  }
+
+  XkbFreeKeyboard(xkb, XkbAllComponentsMask, True);
+  return 0;
+}
+
 void KeyboardLayoutManager::SetupX11Polling() {
   if (!xDisplay) return;
 
@@ -494,6 +534,8 @@ void KeyboardLayoutManager::SetupX11Polling() {
 
   XkbSelectEvents(xDisplay, XkbUseCoreKbd, XkbStateNotifyMask, XkbStateNotifyMask);
   XFlush(xDisplay);
+
+  x11AltGrMask = FindAltGrMask(xDisplay);
 
   int fd = ConnectionNumber(xDisplay);
   x11Poll = new uv_poll_t;
@@ -721,16 +763,30 @@ KeyboardLayoutManager::GetCurrentKeymap(const Napi::CallbackInfo &info) {
 
       if (dom3Code && xkbKeycode > 0x0000) {
         Napi::String dom3CodeKey = Napi::String::New(env, dom3Code);
+
         Napi::Value unmodified = CharacterForNativeCode(
             env, xInputContext, keyEvent, xkbKeycode, keyboardBaseState);
         Napi::Value withShift =
             CharacterForNativeCode(env, xInputContext, keyEvent, xkbKeycode,
                                    keyboardBaseState | ShiftMask);
+        Napi::Value withAltGraph = env.Null();
+        Napi::Value withAltGraphShift = env.Null();
+        if (x11AltGrMask) {
+          withAltGraph = CharacterForNativeCode(
+              env, xInputContext, keyEvent, xkbKeycode,
+              keyboardBaseState | x11AltGrMask);
+          withAltGraphShift = CharacterForNativeCode(
+              env, xInputContext, keyEvent, xkbKeycode,
+              keyboardBaseState | ShiftMask | x11AltGrMask);
+        }
 
-        if (unmodified.IsString() || withShift.IsString()) {
+        if (unmodified.IsString() || withShift.IsString() ||
+            withAltGraph.IsString() || withAltGraphShift.IsString()) {
           Napi::Object entry = Napi::Object::New(env);
           (entry).Set(unmodifiedKey, unmodified);
           (entry).Set(withShiftKey, withShift);
+          (entry).Set(withAltGraphKey, withAltGraph);
+          (entry).Set(withAltGraphShiftKey, withAltGraphShift);
           (result).Set(dom3CodeKey, entry);
         }
       }

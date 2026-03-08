@@ -69,6 +69,7 @@ public:
 #if defined(__linux__) || defined(__FreeBSD__)
   void ProcessCallbackWrapper();
 
+  uint x11AltGrMask = 0;
   int xkbBaseEvent = 0;
   uv_poll_t* x11Poll = nullptr;
   static void OnX11Event(uv_poll_t* handle, int status, int events);
