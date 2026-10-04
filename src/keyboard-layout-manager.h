@@ -67,8 +67,8 @@ public:
   void ProcessCallbackWrapper();
 
 #ifdef HAS_WAYLAND
-  bool isWayland;
-  WaylandKeymapContext *waylandContext;
+  bool isWayland = false;
+  WaylandKeymapContext *waylandContext = nullptr;
 #endif // HAS_WAYLAND
 
 #endif // __linux__ || __FreeBSD__
@@ -91,7 +91,7 @@ private:
   XIM xInputMethod;
 
 #ifdef HAS_WAYLAND
-  uv_poll_t* waylandPoll;
+  uv_poll_t* waylandPoll = nullptr;
   static void OnWaylandEvent(uv_poll_t* handle, int status, int events);
   void SetupWaylandPolling();
   void CleanupWaylandPolling();
