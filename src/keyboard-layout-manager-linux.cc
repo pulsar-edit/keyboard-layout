@@ -234,7 +234,11 @@ static const struct wl_keyboard_listener keyboard_listener = {
     keyboard_keymap, keyboard_enter,     keyboard_leave,
     keyboard_key,    keyboard_modifiers, keyboard_repeat_info};
 
-static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
+// Releases everything the context holds, frees the context itself, and nulls
+// out the caller's pointer so that a later call is a no-op.
+static void CleanupWaylandContext(WaylandKeymapContext *&ctx) {
+  if (!ctx)
+    return;
   if (ctx->xkb_state)
     xkb_state_unref(ctx->xkb_state);
   if (ctx->xkb_keymap)
@@ -251,6 +255,8 @@ static void CleanupWaylandContext(WaylandKeymapContext *ctx) {
     wl_display_roundtrip(ctx->display);
     wl_display_disconnect(ctx->display);
   }
+  delete ctx;
+  ctx = nullptr;
 }
 
 // Given a Wayland context, a keycode, and a modifier mask, return the
